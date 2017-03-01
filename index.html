@@ -1,0 +1,136 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<title>TestMan</title>	
+
+	<!-- CSS -->
+	<link href="css/bootstrap.min.css" rel="stylesheet"/>
+	<link href="css/toastr.min.css" rel="stylesheet"/>
+	<link href="css/editor.css" rel="stylesheet"/>
+	<link href="css/assetview.css" rel="stylesheet"/>
+	<link href="css/default-jstree/style.min.css" rel="stylesheet"/>
+	<link href="lib/jquery-ui-1.12.1.custom/jquery-ui.min.css" rel="stylesheet"/>
+
+	<!-- LIB -->
+	<script type="text/javascript" src='lib/phaser.js'r></script>
+	<script type="text/javascript" src='lib/jquery-ui-1.12.1.custom/jquery-ui.min.js' defer></script>
+
+	<!-- SRC -->
+	<script type="text/javascript" src='src/CallbackManager.js'></script>
+	<script type="text/javascript" src='src/view/AssetView.js'></script>
+	<script type="text/javascript" src='src/view/ToolbarView.js'></script>
+
+	<script type="text/javascript" src='src/ObjectMaster.js'></script>
+	<script type="text/javascript" src='src/AssetMaster.js'></script>
+	<script type="text/javascript" src='src/StageMaster.js'></script>
+	<script type="text/javascript" src='src/Wrapper.js'></script>
+	<script type="text/javascript" src='src/EventLink.js'></script>
+	<script type="text/javascript" src='src/EditorClass.js'></script>
+	<script type="text/javascript" src='src/ToolBox.js'></script>
+	<script type="text/javascript" src='src/MapMan.js' defer></script>
+
+
+	<!-- INIT -->
+	<script type="text/javascript">
+
+		//NODE / LIB
+		window.jQuery = window.$ = require('jquery');
+		window.Freewall = require('freewall').Freewall;
+		window.MouseTrap = require('mousetrap');
+		require('bootstrap');
+		require('jstree');
+
+		var remote = require('electron').remote;
+		var path = require('path');
+		var fs = require('fs');
+		var dirTree = require('directory-tree');
+		
+
+		document.addEventListener("DOMContentLoaded", function(){
+
+			$('#assetview').resizable({
+				handles: "n",
+				resize: function(event, ui){
+
+					$('#canvas-wrap').height($(window).height() - $(this).height());
+
+				},
+				stop: function(event, ui){
+					$(this).css('position','absolute');
+					$(this).css('top', '');
+					$(this).css('bottom',0);
+					$(this).css('left',0);
+
+				}
+			});
+
+
+			window.addEventListener("dragover",function(e){
+			  e = e || event;
+			  e.preventDefault();
+			},false);
+			window.addEventListener("drop",function(e){
+			  e = e || event;
+			  e.preventDefault();
+			},false);
+
+		});
+
+
+	</script>
+
+</head>
+
+<body style="margin:0; padding:0">
+
+	<!--
+	<nav id="nav" class="navbar navbar-default navbar-fixed-top">
+		<div id="nav-container" class="container">
+			<div class="navbar-header">
+				<a id="testman-header" class="navbar-brand" href="#" style="font-size: 12pt">MapMan</a>
+			</div>
+		</div>
+	</nav>
+	-->
+		<div id="toolbar-view">
+			<div id="menu-panel" class="panel panel-default">
+				<div id="options" class="btn-group-vertical" role="group" aria-label="...">
+					<button id="btn-grid" type="button" class="btn btn-default">
+						<span class="icon-grid"></span>
+					</button>
+					<button id="btn-scale" type="button" class="btn btn-default">
+						<span class="icon-scale"></span>
+					</button>
+					<button id="btn-origin" type="button" class="btn btn-default">
+						<span class="icon-origin"></span>
+					</button>
+				</div>
+			</div>		
+
+
+		</div>
+
+		<div id="canvas-wrap">
+			<div id="mapman-canvas" class="droppable">
+			</div>
+		</div>
+
+		<div id="assetview" class="panel panel-default">
+		  <div id="assetview-header" class="panel-heading">Assets</div>
+		  <div id="assetview-container" class="panel-body panel-resizable">
+			<div id="tree-wrap">
+				<div id='tree'>
+				</div>
+			</div>
+			<div id="wall-wrap">
+				<div id="assetview-wall"></div>
+			</div>
+		  </div>
+		</div>
+	
+
+
+
+</body>
+</html>
