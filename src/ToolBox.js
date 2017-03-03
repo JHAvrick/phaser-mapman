@@ -118,25 +118,12 @@ class Navigator {
 	}
 
 	start(pointer) {
-		//Use snap mode when the Grid is enabled
-		if (MapMan.Tools.Grid.gridOn){
-
-			this.snapX = MapMan.Tools.Grid.gridX;
-			this.snapY = MapMan.Tools.Grid.gridY;
-
-			this.update = this.dragCameraOnGrid;
-
-		} else {
-
-			this.update = this.dragCameraOnGrid;
-
-		}
 
 		//Only drag if the middle mouse button is down
 		if (this.stage.input.mousePointer.middleButton.isDown) {
 
-			this.staticPoint.x = pointer.worldX;
-			this.staticPoint.y = pointer.worldY;
+			this.staticPoint.x = pointer.screenX;
+			this.staticPoint.y = pointer.screenY;
 
 			this.previousCameraPosition.x = this.stage.camera.x;	
 			this.previousCameraPosition.y = this.stage.camera.y;
@@ -145,6 +132,7 @@ class Navigator {
 
 			this.enabled = true;
 		}
+
 	}
 
 	end(pointer){
@@ -152,62 +140,15 @@ class Navigator {
 		this.enabled = false;
 	}
 
-	
 	dragCamera(pointer){
 
 		if (this.enabled){
-			
-			this.handle.x = this.stage.input.mousePointer.worldX;
-			this.handle.y = this.stage.input.mousePointer.worldY;
 
-			this.stage.camera.x = this.previousCameraPosition.x + (this.staticPoint.x - this.stage.input.mousePointer.worldX);
-			this.stage.camera.y = this.previousCameraPosition.y + (this.staticPoint.y - this.stage.input.mousePointer.worldY);
+			var movementX = (this.staticPoint.x - this.stage.input.mousePointer.screenX);
+			var movementY = (this.staticPoint.y - this.stage.input.mousePointer.screenY);
 
-		}
-
-	}
-
-	dragCameraOnGrid(pointer){
-
-		if (this.enabled){
-			
-			this.handle.x = this.stage.input.mousePointer.worldX;
-			this.handle.y = this.stage.input.mousePointer.worldY;
-
-			var newX = this.previousCameraPosition.x + (this.staticPoint.x - this.stage.input.mousePointer.worldX);
-			var newY = this.previousCameraPosition.y + (this.staticPoint.y - this.stage.input.mousePointer.worldY);
-
-			if (newX >= this.snapX){
-
-				this.stage.camera.x = this.previousCameraPosition.x - this.snapX;
-
-				this.previousCameraPosition.x = this.stage.camera.x;
-				//this.staticPoint.x = this.stage.input.mousePointer.worldX;
-
-			} else if (newX <= -this.snapX){
-
-				this.stage.camera.x = this.previousCameraPosition.x + this.snapX;
-
-				this.previousCameraPosition.x = this.stage.camera.x;
-				//this.staticPoint.x = this.stage.input.mousePointer.worldX;	
-
-			}
-
-			if (newY >= this.snapY){
-
-				this.stage.camera.y = this.previousCameraPosition.y - this.snapY;
-
-				this.previousCameraPosition.y = this.stage.camera.y;
-				//this.staticPoint.y = this.stage.input.mousePointer.worldY;
-
-			} else if (newY <= -this.snapY){
-
-				this.stage.camera.y = this.previousCameraPosition.y + this.snapY;
-
-				this.previousCameraPosition.y = this.stage.camera.y;
-				//this.staticPoint.y = this.stage.input.mousePointer.worldY;	
-
-			}
+			this.stage.camera.x = this.previousCameraPosition.x + movementX;
+			this.stage.camera.y = this.previousCameraPosition.y + movementY;
 
 		}
 
@@ -220,7 +161,6 @@ class Zoom {
 	constructor(game){
 		this.game = game;
 
-
 		this.zoomFactor = 0;
 		this.scaleFactor = 1;
 
@@ -232,37 +172,44 @@ class Zoom {
 
 	zoom(event){
 
-		//Zoom out
-		if (event.deltaY > 0){
+		if (event.target.nodeName === 'CANVAS'){
 
-			if (this.zoomFactor + .05 < this.upperLimit){
+			//Zoom out
+			if (event.deltaY > 0){
 
-				this.zoomFactor += .05;
-				this.scaleFactor -= .05;
+				if (this.zoomFactor + .05 < this.upperLimit){
+
+					this.zoomFactor += .05;
+					this.scaleFactor -= .05;
+
+				}
+
+			//Zoom in
+			} else {
+
+				if (this.zoomFactor - .05 > this.lowerLimit){
+
+					this.zoomFactor -= .05;
+					this.scaleFactor += .05;
+
+				}
 
 			}
 
-		//Zoom in
-		} else {
+			/*
+			console.log('-------------------------');
+			console.log("ZOOM: " + this.zoomFactor);
+			console.log("SCALE:" + this.scaleFactor);
+			console.log("WIDTH: " + this.game.width);
+			console.log(this.game.world.pivot);
+			console.log('-------------------------');
+			*/
 
-			if (this.zoomFactor - .05 > this.lowerLimit){
-
-				this.zoomFactor -= .05;
-				this.scaleFactor += .05;
-
-			}
+			this.game.world.scale.set(1 - this.zoomFactor);
+			this.clampCameraToGrid();
 
 		}
 
-		console.log('-------------------------');
-		console.log("ZOOM: " + this.zoomFactor);
-		console.log("SCALE:" + this.scaleFactor);
-		console.log("WIDTH: " + this.game.width);
-		console.log(this.game.world.pivot);
-		console.log('-------------------------');
-
-		this.game.world.scale.set(1 - this.zoomFactor);
-		this.clampCameraToGrid();
 
 	}
 

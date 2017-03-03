@@ -1,0 +1,48 @@
+----------------------------ROADMAP-----------------------
+
+Here I have outlined the core features of this app. Any features other than the ones outlined 
+below should be considered secondary. This document exists to track current application progress
+and prevent scope creep. 
+
+SCOPE:
+	
+	MapMan is primarily a scene-builder and should support the following features:
+
+		- Scene / Stage organization
+		- Layer / Group organization within each stage
+		- Tools to adjust object position / scale / rotation 
+		- Property Editor
+		- Basic Custom Object types
+		- Basic Prefab / Template support
+		- JSON export
+
+STRUCTURE:
+
+	assets
+	objects
+	prefabs
+
+BUGS:
+
+	CURRENT: 
+		
+		[] AssetView id system is defunct
+			- Files with same name and extension cause issues (both within root directory tree but not in same directory)
+			- Drag onto canvas fails under certain circumstances 
+
+		[] Navigation via mouse is not working correctly
+
+		[] Mouse position not adjusted correctly when game is scaled causing objects to appear far from where they are dropped
+
+	
+	FIXED: 
+
+		[x] A object move action is added to the Undo stack anytime an object is clicked, even if it has not actually moved anywhere
+			> FIX: Moved action registration to drag-stop event and compared current position to old position before registering action
+
+LOG:
+
+ 3 / 1 / 17
+
+ 	TASK: refactor asset view 
+

@@ -1,51 +1,95 @@
-//BUGS:
-
-	// Identical filenames in different directories causes issues
+const EventManager = require('./src/lib/event-manager.js');
+const FileAccess = require('./src/lib/file-access.js');
+const Freewall = require('freewall').Freewall;
 
 class AssetView {
 
 	constructor(container){
-		this.events = new CallbackManager();
-		this.root = undefined;
-		this.workingDirectory = undefined;
+
+		//DOM
+		this.wallDiv = document.getElementById('assetview-wall');
+		this.container = document.getElementById('assetview-container');
+
+		//LIB
+		this.events = new EventManager();
+		this.fileAccess = new FileAccess();
+		this.wall = new Freewall(this.wallDiv);
+
+		$('#tree').jstree({ 
+			"core": { check_callback: true },
+			"plugins": ["wholerow", "sort", "search"]
+		});
+		this.tree = $.jstree.reference('#tree');
+
+		//Class Members
+		this.root = undefined;	//Reference to root path
+		this.workingDirectory = undefined;	//Currently active directory
+		this.workingDirectoryNode = undefined;
+		this.activeBlock = undefined;
+		this.activeNode = undefined;
+
 		this.divIds = {};	//holds the div ids for the items in the current working directory
 		this.blockData = {};	//opposite of divIds, holds data for each block, lookup by div id
 		this.divIndex = 0;	//incremented for unique div ids
 		this.selection = undefined;
-		this.wallDiv = document.getElementById('assetview-wall');
-		this.container = document.getElementById('assetview-container');
-		this.wall = new Freewall(this.wallDiv);
-
+		this.nodeId = 0;	//Index for unique node ID 
+		
+		//Events an config
 		this.init();
+		this.addEvents();
+	}
+
+	tree(method, param){
+
 	}
 
 	init(){
 		//Wall config
-		var self = this;
 		this.wall.reset({
 			selector: '.item',
 			cellW: 100,
 			cellH: 100,
 			gutterX: 2,
 			gutterY: 2,
-			onResize: function() {
-				self.wall.refresh();
-			}
+			onResize: () => { this.wall.refresh(); }
 		});
-		this.wall.fitWidth();
 
-		//Wall drop
-		this.container.addEventListener('drop', function(event){
+		this.wall.fitWidth();
+	}
+
+	addEvents(){
+		var self = this;
+
+		this.container.addEventListener('drop', (event) => {
 			event.preventDefault();
 
-			if (!this.root){
+			var path = event.dataTransfer.files[0].path;
 
+			if (path){
 				document.getElementById('wall-wrap').style.backgroundImage = 'none';
-				this.setWorkingDirectory(event.dataTransfer.files[0].path);
-
+				this.loadDirTree(path);
 			}
 
-		}.bind(this));
+		});
+
+
+		$('#tree').on('select_node.jstree', (event, nodeData) => {
+
+			if (nodeData.node !== this.activeNode){
+				var node = nodeData.node;
+
+				if (node.data.type == 'dir'){
+
+					this.tree.open_node(node);
+					this.setWorkingDirectory(node);
+
+				} else {
+					
+					this.select(node);
+
+				}
+			}
+		});
 
 		//Canvas drop event
 		$(".droppable").droppable({
@@ -53,162 +97,41 @@ class AssetView {
 			drop: function(event, ui) {
 				if (this.id = 'mapman-canvas'){
 
-					console.log()
-
 					var x = event.clientX - $(this).position().left;
 					var y = event.clientY - $(this).position().top;
 					var position = {x: x, y: y};
-					var data = self.getBlockByDivId(ui.draggable.attr("id"));
+					var data = $(ui.draggable[0]).data('nodeData');
 
 					self.events.trigger('assetDropped', position, data);
 				}
-			},
-			over: function(event, ui) {
-				//$('.display').html( this.id );
 			}
 		});
 
-		$('#mapman-canvas').mouseover(function(){
-
-			var interval = setInterval(function() {
-		        document.getElementById('mapman-canvas').focus();
-			}, 1);
-		});
-
-		$('#mapman-canvas').hover(function(){
-			document.getElementById('mapman-canvas').focus();
-		});
-
 	}
 
 
-	getBlockByDivId(id){
-		return this.blockData[id];
-	}
 
-	//block key is the corresponding file name
-	getDivByBlockKey(filename){
-		return this.divIds[filename];
-	}
+	select(node){
+		this.activeNode = node;	//Prevents event loop
 
-	clearBlocks(){
-		this.blockData = {};
-		this.divIds = {};
-
-		while (this.wallDiv.firstChild) {
-			this.wallDiv.removeChild(this.wallDiv.firstChild);
-		}
-	}
-
-	addReturnBlock(returnPath){
-
-		//Ensure that there is no return path leading outside the root
-		if (returnPath !== this.getParentDirectory(this.root)){
-
-			var div = document.createElement('div');
-				div.className = 'item';	
-				div.style.backgroundImage = 'url("resources/icon/icon-return.png")';
-
-				div.addEventListener('click', function(){
-				
-					this.clearBlocks();
-					this.addReturnBlock(this.getParentDirectory(returnPath));
-					this.setWorkingDirectory(returnPath);
-
-				}.bind(this));
-
-				this.wall.appendBlock(div);
-
-		}
-	}
-
-	addBlock(labelText, labelClass, imagePath, clickCallback){
-		var div = document.createElement('div');
-			div.className = 'item';
-			div.style.backgroundImage = 'url(' + imagePath + ')';
-			div.appendChild(this.getLabel(labelText, labelClass));
-			div.addEventListener('click', clickCallback.bind(this));
-			div.addEventListener('dragstart', function(e){
-				e.preventDefault();
-
-				console.log("Drag Start!");
-			})
-
-			this.wall.appendBlock(div);
-
-			var id = div.id = ('block-div-' + this.divIndex++);
-
-			return id;
-	}
-
-	getLabel(text, className){
-		var label = document.createElement('label');
-			label.className = className;
-			label.innerHTML = text;
-
-		return label;
-	}
-
-	addAssetBlock(url){
-
-		var fileType = url.substr(url.lastIndexOf('.') + 1);
-		var blockId;
-
-		if (["gif", "jpeg", "jpg", "png"].includes(fileType)){
-
-			blockId = this.addBlock(this.getFileName(url), 'asset-label', url.replace(/ /g, '%20'), function(){
-
-				this.select(this.getFileName(url, true));
-
-				this.events.trigger('assetBlockSelected', url, fileType);;
-
-			});
-
-			
-			//Make image assets draggable
-			$('#' + blockId).draggable({	opacity: 0.7, 
-											helper: "clone", 
-											appendTo: "body",
-											start: function(e, ui) {
-												//Add a class to the helper so that CSS can be used to style it
-												//Its important that the helper ignores pointer events so that
-												//the canvas knows where the pointer is
-												$(ui.helper).addClass("ui-draggable-helper");
-											}
-										});
-			
-
-			return blockId;
-
-		} else {
-
-			return this.addBlock(this.getFileName(url), 'asset-label', 'resources/icon/icon-text-large.png', function(){
-
-				this.select(this.getFileName(url, true));
-
-				this.events.trigger('assetBlockSelected', url, fileType);;
-
-			});
-
+		//Nagivate to the correct directory if the selected file is outside of the active directory
+		var parentNode = this.tree.get_node({id: this.tree.get_node(node).parent });
+		if (this.workingDirectoryNode !== parentNode){
+			this.setWorkingDirectory(parentNode);
 		}
 
+		this.tree.deselect_all();
+		this.tree.select_node(node);
+
+		if (this.activeBlock){
+			this.activeBlock.style.border = '1px solid black';
+		}
+
+		this.activeBlock = node.data.div;
+		this.activeBlock.style.border = '4px solid lightgreen';
 	}
 
-	addDirBlock(dirPath){
-		return this.addBlock(this.getFileName(dirPath), 'dir-label', 'resources/icon/icon-dir.png', function(){
-
-			$('#tree').jstree('activate_node', this.getFileName(dirPath, true));
-
-			this.events.trigger('dirBlockSelect', dirPath);
-
-		});
-	}
-
-	select(fileName){
-		this.selectBlock(fileName);
-		this.selectNode(fileName);
-	}
-
+	/*
 	selectBlock(fileName){
 
 		if (this.selection){
@@ -227,114 +150,132 @@ class AssetView {
 		$('#tree').jstree('select_node', fileName);
 		$('#tree').jstree('toggle_node', fileName);
 	}
+	*/
 
-	setWorkingDirectory(dirPath, toSelect){
-		this.clearBlocks();
+//-------------------------------------------------------------------------------------
 
-		var self = this;
-		fs.readdir(dirPath, (err, files) => {
-			if (files){
-				files.forEach(file => {
-					var subPath = path.join(dirPath, file);
+	createRoot(dirPath){
+		this.root = dirPath;
 
-					fs.lstat(subPath, (err, stats) => {
-
-						if (stats.isDirectory()){
-
-							self.addDirBlock(subPath);
-
-						} else {
-
-							var divId = self.addAssetBlock(subPath);
-
-							if (divId){
-								var fileName = self.getFileName(subPath, true);
-
-								self.divIds[fileName] = divId;	//use fileName as lookup key
-								self.blockData[divId] = {path: subPath, name: fileName} //use divId as lookup key
-
-								//If a selection is specified, select the block if/when its fileName appears 
-								if (fileName == toSelect){
-									self.selectBlock(fileName);
-								}
-
+		var item = this.fileAccess.pathInfo(dirPath);
+		var id = this.getId();
+		var node = 	{
+					id: id,
+					text: item.name,
+					icon: this.getExtensionIcon(item.ext),
+					data:   {	
+								id: id,
+								name: item.name,
+								type: 'dir',
+								path: dirPath,
+								ext: item.ext, 
 							}
-							
-						}
 
-					});
+					}
 
-				});
-
-				//Set and root and build tree down from there 
-				if (!self.root) { 
-					self.root = dirPath; 
-					self.buildTree(dirPath);
-				}	
-
-				self.workingDirectory = dirPath;
-
-				self.wall.refresh();
-			}
+		this.tree.create_node( '#', node, "last", () => {
+				this.loadDirTree(dirPath, node);
 		});
 
 	}
 
-	buildTree(dirPath){
+	loadDirTree(dirPath, parentNode){
+		if (!this.root){ 
+			this.createRoot(dirPath);
+			return;
+		}
 
-		var self = this;
-		$('#tree').jstree({ 'plugins': ["wholerow", "sort", "search"] ,'core' : {
-		    'data' : [dirTree(dirPath, null, function(item, itemPath){
-		    	
-		    	//If there is no extension, its probably a directory
-		    	if (item.extension) {
-		    		item.icon = self.getExtensionIcon(item.extension);
-		    	} 
+		this.fileAccess.getDirFiles(dirPath, (item, itemPath) => {
 
-			    item.text = item.name;
-			    item.id = item.name;
-			    item.data = {
-			    	name: item.name,
-			    	extension: item.extension,
-			    	path: item.path
-			    }
+			var id = this.getId();
+			var node = 	{
+						id: id,
+						text: item.name,
+						icon: this.getExtensionIcon(item.ext),
+						data:   {	
+									id: id,
+									name: item.name,
+									type: item.type,
+									path: itemPath,
+									ext: item.ext, 
+								}
 
-		    })]
-		}});
+						}
 
-		$('#tree').on('activate_node.jstree', function (e, activated) {
-			var item = activated.node.data;
+			this.tree.create_node( parentNode, node, "last", () => {
+				if (item.type == 'dir'){
+					this.loadDirTree(itemPath, node);
+				}
+			});
 
-			if (item.extension){
+		});
+	}
 
-				var parentDirectory = self.getParentDirectory(item.path);
+	setWorkingDirectory(node){
+		this.workingDirectoryNode = node;
+		this.workingDirectory = node.data.path;
 
-				if (parentDirectory !== self.workingDirectory){
+		this.clearBlocks();	
 
-					self.setWorkingDirectory(parentDirectory, item.name);
+		var childIds = this.tree.get_node(node).children;
+			childIds.forEach((id) => {
+				var node = this.tree.get_node({id: id});
 
-				} else {
+				node.data.div = this.addBlock(node);
 
-					self.selectBlock(item.name);
+			});
+
+		this.wall.refresh();
+	}
+
+	addBlock(node){
+		var div = document.createElement('div');
+			div.className = 'item';
+			$(div).data('nodeData', node.data);
+
+			if (node.data.type == 'dir'){
+
+				div.style.backgroundImage = 'url("resources/icon/icon-dir.png")';
+				div.appendChild(this.getLabel(node.data.name, 'dir-label'));
+				div.addEventListener('click', (event) => {
+					this.events.trigger('dirBlockSelected', node);
+					this.tree.select_node(node);
+				});
+
+			} else {
+
+				div.style.backgroundImage = 'url(' + node.data.path.replace(/ /g, '%20'); + ')';
+				div.appendChild(this.getLabel(node.data.name, 'asset-label'));
+				div.addEventListener('click', (event) => {
+					this.events.trigger('assetBlockSelected', node);
+					this.tree.select_node(node)
+				});
+
+				if ([".gif", ".jpeg", ".jpg", ".png"].includes(node.data.ext)){
+
+					$(div).draggable({	
+										opacity: 0.7, 
+										helper: "clone", 
+										appendTo: "body",
+										start: function(e, ui) {
+												//Add a class to the helper so that CSS can be used to style it
+												//Its important that the helper ignores pointer events so that
+												//the canvas knows where the pointer is
+												$(ui.helper).addClass("ui-draggable-helper");
+											}
+										});
 
 				}
 
-				self.events.trigger('assetNodeSelected', item);
-
-			} else {
-				
-				//self.addReturnBlock(self.getParentDirectory(item.path));
-				self.setWorkingDirectory(item.path);
-
-				self.events.trigger('dirNodeSelected', item);
 			}
 
+			this.wall.appendBlock(div);
 
-		}).jstree();
+			return div;
 	}
 
+
 	getExtensionIcon(extension){
-		console.log(extension);
     	if (extension) {
     		switch (true){
 	    		case ['.png', '.jpg', 'gif'].includes(extension):
@@ -359,21 +300,25 @@ class AssetView {
     	return icon;
 	}
 
-	getParentDirectory(dir){
-		var split = dir.split(path.sep);
+	clearBlocks(){
+		this.blockData = {};
+		this.divIds = {};
 
-		return dir.slice(0, dir.length - split[split.length - 1].length - 1);
-	}
-
-	getFileName(filePath, keepExtension){
-		var split = filePath.split(path.sep);
-
-		if (keepExtension){
-			return split[split.length - 1];
+		while (this.wallDiv.firstChild) {
+			this.wallDiv.removeChild(this.wallDiv.firstChild);
 		}
-
-		return split[split.length - 1].split('.')[0];
 	}
 
+	getLabel(text, className){
+		var label = document.createElement('label');
+			label.className = className;
+			label.innerHTML = text;
+
+		return label;
+	}
+
+	getId(){
+		return 'nodeID-' + this.nodeId++;
+	}
 
 }

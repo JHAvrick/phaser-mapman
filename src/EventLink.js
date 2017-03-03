@@ -22,8 +22,9 @@ var EventLink = {
 		this.stageManager = new StageManager(this.game);
 
 		//UI Components
-		this.assetView = new AssetView(document.getElementById('freewall'));
+		this.assetView = new AssetView(document.getElementById('freewall'), this.fileAccess);
 		this.toolbarView = new ToolbarView();
+
 
 		this.addKeyMap();
 
