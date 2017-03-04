@@ -16,7 +16,7 @@ class Wrapper {
 		this.lastY = 0;
 
 		this.bounds = this.stage.add.graphics(0, 0);
-		this.bounds.beginFill(0x00ff00, .5);
+		this.bounds.beginFill(0x00ff00, .2);
 		this.bounds.lineStyle(3, 0x00ff00, 2);
 		this.bounds.drawRect(0, 0, this.display.width, this.display.height);
 		this.bounds.visible = false;

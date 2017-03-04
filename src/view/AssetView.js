@@ -16,13 +16,21 @@ class AssetView {
 		this.wall = new Freewall(this.wallDiv);
 
 		$('#tree').jstree({ 
-			"core": { check_callback: true },
+			"core": { 	check_callback: true,
+						data: [],
+						multiple: false,
+						error: function(err){
+							console.log(err);
+						}
+					},
 			"plugins": ["wholerow", "sort", "search"]
 		});
 		this.tree = $.jstree.reference('#tree');
 
 		//Class Members
 		this.root = undefined;	//Reference to root path
+		this.rootNode = undefined;
+
 		this.workingDirectory = undefined;	//Currently active directory
 		this.workingDirectoryNode = undefined;
 		this.activeBlock = undefined;
@@ -37,10 +45,6 @@ class AssetView {
 		//Events an config
 		this.init();
 		this.addEvents();
-	}
-
-	tree(method, param){
-
 	}
 
 	init(){
@@ -58,7 +62,6 @@ class AssetView {
 	}
 
 	addEvents(){
-		var self = this;
 
 		this.container.addEventListener('drop', (event) => {
 			event.preventDefault();
@@ -66,8 +69,16 @@ class AssetView {
 			var path = event.dataTransfer.files[0].path;
 
 			if (path){
-				document.getElementById('wall-wrap').style.backgroundImage = 'none';
-				this.loadDirTree(path);
+				if (!this.root){
+
+					this.loadDirTree(path);
+
+				} else {
+
+					this.copyToWorkingDirectory(path);
+
+				}
+				
 			}
 
 		});
@@ -92,6 +103,7 @@ class AssetView {
 		});
 
 		//Canvas drop event
+		var self = this;
 		$(".droppable").droppable({
 			refreshPositions: true,
 			drop: function(event, ui) {
@@ -108,8 +120,6 @@ class AssetView {
 		});
 
 	}
-
-
 
 	select(node){
 		this.activeNode = node;	//Prevents event loop
@@ -131,50 +141,99 @@ class AssetView {
 		this.activeBlock.style.border = '4px solid lightgreen';
 	}
 
-	/*
-	selectBlock(fileName){
+	reload(){
+		this.tree.delete_node(this.rootNode);
+		this.clearBlocks();
 
-		if (this.selection){
-			this.selection.style.border = '0px';
+		var resetRoot = this.root;
+		this.root = null;
+
+		this.loadDirTree(resetRoot);
+		this.setWorkingDirectory(this.workingDirectoryNode);
+	}
+
+	reset(){
+		this.tree.delete_node(this.rootNode);
+		this.clearBlocks();
+
+		var resetRoot = this.root;
+		this.root = null;
+	}
+
+	//Checks the working directory for a node with the given filename
+	checkFilenameExists(fileName){
+
+		var nodeIds = this.tree.get_node(this.workingDirectoryNode).children;	
+
+		for (let i = 0; i < nodeIds.length; i++){
+
+			var child = this.tree.get_node({id: nodeIds[i] });
+
+			if ( (child.data.name + child.data.ext) === fileName){
+				return child;
+			}
+
 		}
 
-		this.selection = document.getElementById(this.divIds[fileName]);
+	}
 
-		if (this.selection){
-			this.selection.style.border = "1px solid black";
+	removeNodeByFilename(fileName){ 
+		var node = this.checkFilenameExists(fileName);
+
+		console.log(node);
+
+		if (node){
+			node.data.div.remove();
+			this.tree.delete_node(node);
+			this.wall.refresh();
 		}
 	}
 
-	selectNode(fileName){
-		$('#tree').jstree('deselect_all');
-		$('#tree').jstree('select_node', fileName);
-		$('#tree').jstree('toggle_node', fileName);
+	copyToWorkingDirectory(filePath){
+
+		this.fileAccess.copy(filePath, this.workingDirectory, (copiedPath) => {
+
+			this.appendNode(copiedPath);
+
+		});
+
 	}
-	*/
 
-//-------------------------------------------------------------------------------------
+	//Appends a node to the working directory and adds a block for it
+	appendNode(itemPath){
 
-	createRoot(dirPath){
-		this.root = dirPath;
+		this.fileAccess.pathInfo(itemPath, (item) => {
 
-		var item = this.fileAccess.pathInfo(dirPath);
-		var id = this.getId();
-		var node = 	{
-					id: id,
-					text: item.name,
-					icon: this.getExtensionIcon(item.ext),
-					data:   {	
-								id: id,
-								name: item.name,
-								type: 'dir',
-								path: dirPath,
-								ext: item.ext, 
-							}
+			var id = this.getId();
+			var node = 	{
+						id: id,
+						text: item.name,
+						icon: this.getExtensionIcon(item.ext),
+						data:   {	
+									id: id,
+									name: item.name,
+									type: item.type,
+									path: itemPath,
+									ext: item.ext, 
+								}
 
-					}
+						}
 
-		this.tree.create_node( '#', node, "last", () => {
-				this.loadDirTree(dirPath, node);
+			//If a file/node exists with the same name, remove it (as it has now been overwritted)
+			//This must be done before the new node is created
+			this.removeNodeByFilename(item.name + item.ext);
+
+			this.tree.create_node( this.workingDirectoryNode , node, "last", () => {
+
+				var newNode = this.tree.get_node(node);
+					newNode.data.div = this.addBlock(newNode);
+
+				if (item.type == 'dir'){
+					this.appendNode(itemPath, newNode);
+				}
+
+			});
+
 		});
 
 	}
@@ -186,6 +245,12 @@ class AssetView {
 		}
 
 		this.fileAccess.getDirFiles(dirPath, (item, itemPath) => {
+
+			//Don't create a node for project file, but trigger an event signaling that it is found
+			if ( (item.name + item.ext) === 'project.json'){
+				this.events.trigger('projectFileFound', itemPath);
+				return;
+			}
 
 			var id = this.getId();
 			var node = 	{
@@ -211,6 +276,41 @@ class AssetView {
 		});
 	}
 
+	createRoot(dirPath){
+		
+		this.fileAccess.pathInfo(dirPath, (item) => {
+
+			if (item.type == 'dir'){
+				this.root = dirPath;
+
+				var item = this.fileAccess.parsePath(dirPath);
+				var id = this.getId();
+				var node = 	{
+							id: id,
+							text: item.name,
+							icon: this.getExtensionIcon(item.ext),
+							data:   {	
+										id: id,
+										name: item.name,
+										type: 'dir',
+										path: dirPath,
+										ext: item.ext, 
+									}
+
+							}
+
+				this.tree.create_node( '#', node, "last", () => {
+						this.rootNode = node;
+						this.loadDirTree(dirPath, node);
+				});
+
+				this.hideDragHint();
+			}
+
+		});
+
+	}
+
 	setWorkingDirectory(node){
 		this.workingDirectoryNode = node;
 		this.workingDirectory = node.data.path;
@@ -219,9 +319,9 @@ class AssetView {
 
 		var childIds = this.tree.get_node(node).children;
 			childIds.forEach((id) => {
-				var node = this.tree.get_node({id: id});
 
-				node.data.div = this.addBlock(node);
+				var node = this.tree.get_node({id: id});
+					node.data.div = this.addBlock(node);
 
 			});
 
@@ -244,7 +344,10 @@ class AssetView {
 
 			} else {
 
-				div.style.backgroundImage = 'url(' + node.data.path.replace(/ /g, '%20'); + ')';
+				//This monstrosity removes spaces and appends data/time to the image url to prevent caching
+				var imagePath = node.data.path.replace(/ /g, '%20') + ('?' + new Date().getTime()); 
+
+				div.style.backgroundImage = 'url(' + imagePath + ')';
 				div.appendChild(this.getLabel(node.data.name, 'asset-label'));
 				div.addEventListener('click', (event) => {
 					this.events.trigger('assetBlockSelected', node);
@@ -319,6 +422,10 @@ class AssetView {
 
 	getId(){
 		return 'nodeID-' + this.nodeId++;
+	}
+
+	hideDragHint(){
+		document.getElementById('wall-wrap').style.backgroundImage = 'none';
 	}
 
 }

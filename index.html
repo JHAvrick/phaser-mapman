@@ -41,9 +41,17 @@
 		require('bootstrap');
 		require('jstree');
 
+		const Common = 	{
+							fs: require('fs'),
+							dialog: require('electron').remote.dialog,
+							path: require('path'),
+
+						}
+
 		var remote = require('electron').remote;
 		var path = require('path');
 		//var fs = require('fs');
+		const DIALOG = require('electron').remote.dialog;
 		
 
 		document.addEventListener("DOMContentLoaded", function(){
@@ -92,8 +100,45 @@
 		</div>
 	</nav>
 	-->
+		<div id="menu-bar">
+			<div id="menu-options" class="btn-group" role="group" aria-label="...">
+
+					<div class="dropdown" style="float:left;">
+						<button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							File
+						</button>
+						<ul class="dropdown-menu">
+							<li><a href="#" id="file-new">New Project</a></li>
+							<li><a href="#" id="file-open">Open Project</a></li>
+							<li><a href="#" id="file-save">Save</a></li>
+							<li><a href="#" id="file-saveAs">Save As</a></li>
+							<li><a href="#" id="file-publish">Publish</a></li>
+						</ul>
+					</div>
+
+					<div class="dropdown" style="float:left;">
+						<button type="button" class="btn btn-default btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+							Edit
+						</button>
+						<ul class="dropdown-menu">
+							<li><a href="#" id="edit-undo">Undo</a></li>
+							<li><a href="#" id="edit-copy">Copy</a></li>
+							<li><a href="#" id="edit-paste">Paste</a></li>
+							<li><a href="#" id="edit-duplicate">Duplicate</a></li>
+						</ul>
+					</div>
+
+				
+
+				<button type="button" class="btn btn-default btn-sm">
+					Etc
+				</button>
+			</div>	
+
+		</div>
+
 		<div id="toolbar-view">
-			<div id="menu-panel" class="panel panel-default">
+			<div id="tool-panel" class="panel panel-default">
 				<div id="options" class="btn-group-vertical" role="group" aria-label="...">
 					<button id="btn-grid" type="button" class="btn btn-default">
 						<span class="icon-grid"></span>

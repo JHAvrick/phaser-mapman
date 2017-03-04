@@ -35,6 +35,45 @@ class StageManager {
 }
 
 
+class ProjectManager {
+
+	constructor(game){
+		this.game = game;
+		this.fileAccess = new FileAccess();
+	}
+
+	newProject(callback){
+
+		var options = 	{
+							title: 'New Project',
+							buttonLabel: 'Create Working Directory',
+						}
+
+		DIALOG.showSaveDialog(options, (path) => {
+			if (path){
+				this.fileAccess.buildDirectory(path, ['asset', 'object', 'prefab'], (err, result) => {
+					if (err){
+
+						return false;
+
+					} else {
+
+						if (callback){
+							callback(path);
+						}
+
+					}
+
+				});
+			}
+		});
+
+
+	}
+
+}
+
+
 
 
 

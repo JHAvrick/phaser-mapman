@@ -13,7 +13,8 @@ function createWindow () {
                           maximizable: false});
 
   win.loadURL(`file://${__dirname}/index.html`);
-  //win.setMenu(null);
+  win.setMenu(null);
+  win.openDevTools();
 
   win.on('closed', () => {
     win = null
