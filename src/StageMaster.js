@@ -17,25 +17,37 @@ class StageMaster {
 		this.active = undefined;
 	}
 
+	reset(){
+		//TO DO: Create an actual reset function
+	}
+
 	newStage(){
 		var stage = this.factory.create();
 
 		this.pool.add(stage);
-		this.setActive(stage.id);
+		this.setActiveStage(stage.id);
 
 		return stage;
 	}
 
-	setActive(id){
-		var stage = this.pool.getStage(id)
+	setActiveStage(id){
+		var stage = this.pool.getStage(id);
 
 		if (stage){
 			this.active = stage;
 		}
 	}
 
+	setActiveLayer(id){
+		this.active.setActiveLayer(id);
+	}
+
 	action(actionObj){
 		this.active.action(actionObj);
+	}
+
+	undo(){
+		this.active.undo();
 	}
 }
 
@@ -49,7 +61,133 @@ class StageFactory {
 	}
 
 	create(){
-		return new Stage('stage-' + this.stageIdIndex++, 'New Stage ' + this.stageKeyIndex++, this.game);
+		return new Scene('stage-' + this.stageIdIndex++, 'New Stage ' + this.stageKeyIndex++, this.game);
+	}
+
+}
+
+class Scene {
+
+	constructor(id, key, game){
+		this.game = game
+
+		this.id = id;
+		this.key = key;
+		this.active = false;
+		//this.actions = new ActionStack();
+		this.all = new ObjectPool();
+		this.groups = {};	//Each group is an object pool
+
+		this.layers = {};	//Each layer is an object pool
+		this.activeLayer = undefined;
+
+	}
+
+	action(actionObj){
+		this.activeLayer.actions.register(actionObj);
+	}
+
+	undo(){
+		this.activeLayer.actions.undo();
+	}
+
+	activate(){
+		this.all.modifyAll(function(wrapper){
+
+			wrapper.activate();
+
+		}.bind(this));
+	}
+
+	deactivate(){
+
+	}
+
+	add(wrapper){
+		this.all.add(wrapper);
+		this.activeLayer.objects.add(wrapper);
+	}
+
+	newLayer(id){
+		if (!this.layers[id]){
+			this.layers[id] = { name: id, actions: new ActionStack(), objects: new ObjectPool() };
+
+			return id;
+		}
+
+		return false;
+	}
+
+	removeLayer(id){
+		if (this.layers[id]){
+			delete this.layers[id];
+		}
+	}
+
+	addToLayer(id, wrapper){
+		if (this.layers[id]){
+			this.layers[id].objects.add(wrapper);
+			
+			return;
+		}
+
+		return false;
+	}
+
+	setActiveLayer(id){
+		if (this.layers[id]){
+			this.activeLayer = this.layers[id];
+		}
+	}
+
+	getActiveLayerObjects(){
+		return this.activeLayer.objects.getAllAsArray();
+	}
+
+
+	addGroup(key){
+		if (!this.groups[key]){
+			this.groups[key] = new ObjectPool();
+
+			return this.groups[key];
+		}
+
+		return false;
+	}
+
+	addToGroup(key, wrapper){
+		if (this.groups[key]){
+			this.groups[key].add(wrapper);
+			
+			return;
+		}
+
+		return false;
+	}
+
+
+	removeGroup(key){
+		if (this.groups[key]){
+			delete this.groups[key];
+		}
+	}
+}
+
+class ActionStack {
+
+	constructor(){
+		this.stack = [];
+	}
+
+	register(action){
+		this.stack.unshift(action);
+	}
+
+	undo(){
+		if (this.stack[0]){
+			this.stack[0].undo()
+			this.stack.shift();
+		}
 	}
 
 }
@@ -126,109 +264,4 @@ class StagePool {
 			this.deathModifiers[i](stage);
 		}
 	}
-}
-
-class Stage {
-
-	constructor(id, key, stage){
-		this.stage = stage;
-
-		this.id = id;
-		this.active = false;
-		this.actions = new ActionStack();
-		this.all = new ObjectPool();
-		this.layers = {};
-		this.groups = {};
-
-	}
-
-	action(actionObj){
-		this.actions.register(actionObj);
-	}
-
-	activate(){
-		this.all.modifyAll(function(wrapper){
-
-			wrapper.activate();
-
-		}.bind(this));
-	}
-
-	deactivate(){
-
-	}
-
-	addLayer(key){
-		if (!this.layers[key]){
-			this.layers[key] = new ObjectPool();
-
-			return this.layers[key];
-		}
-
-		return false;
-	}
-
-	addToLayer(key, wrapper){
-		if (this.layers[key]){
-			this.layers[key].add(wrapper);
-			
-			return;
-		}
-
-		return false;
-	}
-
-	removeLayer(key){
-		if (this.layers[key]){
-			delete this.layers[key];
-		}
-	}
-
-	addGroup(key){
-		if (!this.groups[key]){
-			this.groups[key] = new ObjectPool();
-
-			return this.groups[key];
-		}
-
-		return false;
-	}
-
-	addToGroup(key, wrapper){
-		if (this.groups[key]){
-			this.groups[key].add(wrapper);
-			
-			return;
-		}
-
-		return false;
-	}
-
-
-	removeGroup(key){
-		if (this.groups[key]){
-			delete this.groups[key];
-		}
-	}
-}
-
-
-class ActionStack {
-
-	constructor(){
-		this.stack = [];
-	}
-
-	register(action){
-		this.stack.unshift(action);
-
-	}
-
-	undo(){
-		if (this.stack[0]){
-			this.stack[0].undo.apply(this.stack[0].context, this.stack[0].params);
-			this.stack.shift();
-		}
-	}
-
 }

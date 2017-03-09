@@ -18,9 +18,10 @@ SCOPE:
 
 STRUCTURE:
 
-	assets
-	objects
-	prefabs
+	Note: 	As opposed to having one complicated project file holding all the objects, scenes, asset paths, settings, etc, 
+			I'd like for everything to be more modular and based on loading / unloading scenes. The project file should only
+			contain editor settings and project-specific data such as the publish path. Each scene file should be self-contained. 
+			Object/Definition files should be loaded on project load, however;
 
 BUGS:
 
@@ -69,19 +70,43 @@ WORKFLOW:
 
 	Schedule:
 
+		End Date: March 15
+
 		-------------------------------------------------------------
 		| 3 / 3 / 17												|
 		-------------------------------------------------------------
-		|  To Do:                                                   |
+		|  To Do - AssetView:                                       |
 		|   [x] Refactor AssetView                                  |
-		|   [ ] Create new working directory                        |
-		|   [ ] Open existing working directory                     |
-		|                                                           |
-		|                                                           |			
-		|                                                           |
-		|                                                           |		
+		|   [x] Create new working directory                        |
+		|   [x] Open existing working directory                     |
+		|   [-] Drag assets and directories into AssetView          |
+		|                                                           |					
+		|___________________________________________________________|	
+
+		-------------------------------------------------------------
+		| 3 / 4 / 17												|
+		-------------------------------------------------------------
+		|  To Do - AssetView:                                       |
+		|   [x] Drag assets and directories into AssetView          |
+		|   [ ] Create scaling tool                                 |
+		|                                                           |	
+		|___________________________________________________________|
+
+		-------------------------------------------------------------
+		| 3 / 5 / 17												|
+		-------------------------------------------------------------
+		|  To Do - AssetView:                                       |
+		|   [ ] Create rotate tool                                  |
+		|                                                           |	
 		|___________________________________________________________|	
 		
+		-------------------------------------------------------------
+		| 3 / 5 / 17												|
+		-------------------------------------------------------------
+		|  To Do - AssetView:                                       |
+		|   [ ] Create selection editor UI                          |
+		|                                                           |	
+		|___________________________________________________________|
 
 
 

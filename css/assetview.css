@@ -1,8 +1,10 @@
 #assetview {
 	border: 1px solid grey;
 	margin: 0;
-	width: 100%;
+	width: 80%;
 	height: 35vh;
+	min-height: 20%;
+	max-height: 50%;
 	overflow: hidden;
 	position: absolute;
     bottom: 0;

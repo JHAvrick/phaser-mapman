@@ -32,7 +32,7 @@ body {
 .dropdown:hover .dropdown-menu {
     display: block;
     top: 24px;
-    margin-top: 0; // remove the gap so it doesn't close
+    margin-top: 0;
 }
 
 #editor-wrap {
@@ -44,7 +44,7 @@ body {
 	position: absolute;
 	top: 25px;
 	left: 46px;
-	width: 100%;
+	width: 90vw;
 	height: auto;
 }
 
@@ -83,6 +83,184 @@ body {
 	outline: none;
 }
 
+#property-menu-wrapper {
+	position: absolute;
+	right: 0;
+	top: 25px;
+	left: !important;
+	padding: 0;
+	margin: 0;
+	width: 20%;
+	min-width: 15%;
+	max-width: 40%;
+	height: 100vh;
+}
+
+#property-menu-header {
+
+}
+
+#layer-container {
+	width: 100%;
+	height: 25%;
+}
+
+#layer-toolbar {
+	border: 1px solid gray;
+	background-color: #FFFAFA;
+	position: absolute;
+	left: 0;
+	bottom: 0;
+	width: 100%;
+	height: 30px;
+}
+
+#layer-toolbar button {
+	background-repeat: no-repeat;
+	background-position: center center;
+	background-color: transparent;
+	float: left;
+	padding: 0;
+	margin: 0;
+	border: 0;
+	width: 30px;
+	height: 100%;
+}
+
+.layerbtn-visible {
+	border: 1px solid black;
+	background-image: url('../resources/icon/icon-eye.png');
+	background-repeat: no-repeat;
+	background-position: center center;
+	background-color: transparent;
+	position: fixed;
+	vertical-align: middle;
+	text-align: center;
+	margin-top: 4px;
+	padding: 0;
+	right: 5px;
+	width: 20px;
+	height: 15px;
+}
+
+
+#btn-add-layer {
+	background-image: url('../resources/icon/icon-add.png');
+}
+
+#btn-add-layer:hover {
+	background-image: url('../resources/icon/icon-add.png');
+	background-color: lightgreen;
+}
+
+#btn-remove-layer {
+	background-image: url('../resources/icon/icon-trash.png');
+}
+
+#btn-remove-layer:hover {
+	background-color: red;
+}
+
+#property-tabs {
+	height: 75%;
+}
+
+#tab-properties {
+	padding: 0;
+	margin: 0;
+	width: 100%;
+	height: 600px;
+}
+
+/*------------- PROPERTY GRID----------- */
+#prop-panel {
+	margin: 10px; 
+	padding: 0;
+	width: calc(100% - 20px);
+	height: 100%;
+}
+
+#prop-grid-wrapper {
+	border: 1px solid gray;
+	display: block;
+	margin-left: 10px;
+	margin-top: 10px;
+	width: calc(100% - 20px);
+	height: calc(90% - 25px);
+	overflow-y: scroll;
+}
+
+#prop-grid-input {
+	position: relative;
+	left: 0;
+	bottom: 0px;
+	margin: 10px;
+	margin-top: 5px; 
+	padding: 0;
+	width: calc(100% - 20px);
+	height: 5%;
+}
+
+#prop-grid{
+	overflow-y: scroll;
+	width: 100%;
+}
+
+#prop-grid .prop-row:hover {
+	background-color: lightgray;
+}
+
+#prop-grid .prop-row .prop-name-cell {
+	border: 1px solid lightgray;
+	padding-left: 5px;
+	width: 47%;
+}
+
+#prop-grid .prop-row .prop-input-cell {
+	border: 1px solid lightgray;
+	padding: 0;
+	margin: 0;
+	width: 47%;
+}
+
+#prop-grid .prop-row input {
+	width: 100%;
+	border: 0;
+	background-color: transparent;
+	border-style: outset;
+	outline: none;
+}
+
+#prop-grid .prop-row select {
+	width: 100%;
+	border: 0;
+	background-color: transparent;
+	border-style: outset;
+	outline: none;
+}
+
+#prop-grid .prop-row .remove-btn-cell {
+	padding: 0;
+	margin: 0;
+	border: 1px solid lightgray;
+	width: 6%;
+}
+
+#prop-grid .prop-row .remove-prop-btn {
+	border: 0;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	background-color: transparent;
+}
+
+#prop-grid .prop-row .remove-btn-cell:hover {
+	background-color: pink;
+}
+
+
+/*------------- MISC ------------------ */
+
 .ui-draggable-helper {
 
 	pointer-events: none !important;
@@ -116,6 +294,52 @@ body {
 
 .icon-origin {
 	background-image: url('../resources/icon/icon-origin.png');
+	background-repeat: no-repeat;
+	padding-left: 20px;
+	padding-bottom: 15px;
+	padding-top: 3px;
+	display: inline; 
+}
+
+.icon-world {
+	background-image: url('../resources/icon/icon-world.png');
+	background-repeat: no-repeat;
+	padding-left: 20px;
+	padding-bottom: 15px;
+	padding-top: 3px;
+	display: inline; 
+}
+
+.icon-list {
+	background-image: url('../resources/icon/icon-list.png');
+	background-repeat: no-repeat;
+	padding-left: 20px;
+	padding-bottom: 15px;
+	padding-top: 3px;
+	display: inline; 
+}
+
+.icon-object {
+	background-image: url('../resources/icon/icon-object.png');
+	background-repeat: no-repeat;
+	padding-left: 20px;
+	padding-bottom: 15px;
+	padding-top: 3px;
+	display: inline; 
+}
+
+
+.icon-rotate {
+	background-image: url('../resources/icon/icon-rotate.png');
+	background-repeat: no-repeat;
+	padding-left: 20px;
+	padding-bottom: 15px;
+	padding-top: 3px;
+	display: inline; 
+}
+
+.icon-add {
+	background-image: url('../resources/icon/icon-add.png');
 	background-repeat: no-repeat;
 	padding-left: 20px;
 	padding-bottom: 15px;

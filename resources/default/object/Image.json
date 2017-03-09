@@ -1,0 +1,7 @@
+{
+	"name": "Image",
+	"extends": "Phaser.Sprite",
+	"namespace": "Phaser",
+	"parameters": 	[ "<--GAME-->" , "x", "y", "key", "frame"],
+	"properties": []
+}

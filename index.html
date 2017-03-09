@@ -11,6 +11,7 @@
 	<link href="css/assetview.css" rel="stylesheet"/>
 	<link href="css/default-jstree/style.min.css" rel="stylesheet"/>
 	<link href="lib/jquery-ui-1.12.1.custom/jquery-ui.min.css" rel="stylesheet"/>
+	<link href="css/jqPropertyGrid.css" rel="stylesheet"/>
 
 	<!-- LIB -->
 	<script type="text/javascript" src='lib/phaser.js'r></script>
@@ -40,6 +41,12 @@
 		window.MouseTrap = require('mousetrap');
 		require('bootstrap');
 		require('jstree');
+		require('jqpropertygrid');
+		require('spectrum');
+
+		const PropertyView = require('./src/view/PropertyView.js');
+		const LayerView = require('./src/view/LayerView.js');
+		const DefinitionMaster = require('./src/DefinitionMaster.js');
 
 		const Common = 	{
 							fs: require('fs'),
@@ -53,14 +60,23 @@
 		//var fs = require('fs');
 		const DIALOG = require('electron').remote.dialog;
 		
-
+		//On DOM load, do some UI config
 		document.addEventListener("DOMContentLoaded", function(){
+			
+			$(document).tooltip({
+				show: {
+					delay: 500
+				}
+			});
+
+			$("#property-tabs").tabs();
 
 			$('#assetview').resizable({
 				handles: "n",
 				resize: function(event, ui){
 
-					$('#canvas-wrap').height($(window).height() - $(this).height());
+					$(this).css('top', '');
+					//$('#canvas-wrap').height($(window).height() - $(this).height());
 
 				},
 				stop: function(event, ui){
@@ -72,6 +88,51 @@
 				}
 			});
 
+			$('#property-menu-wrapper').resizable({
+				handles: "w",
+				resize: function(event, ui){
+					$(this).css('left', '');
+
+					//$('#canvas-wrap').width($(window).width() - $(this).width());
+					$('#assetview').width($(window).width() - ($(this).width() + 4));
+				},
+				stop: function(event, ui){
+					$(this).css('position','absolute !important');
+					$(this).css('left', '');
+					$(this).css('top', 25);
+					$(this).css('right', '0px !important');
+					//$(this).css('left',0);
+
+				}
+			});
+
+			$('#layer-container').resizable({
+				handles: "s",
+				resize: function(event, ui){
+					//$(this).css('left', '');
+
+					//$('#canvas-wrap').width($(window).width() - $(this).width());
+					//$('#assetview').width($(window).width() - ($(this).width() + 4));
+				},
+				stop: function(event, ui){
+					//$(this).css('position','absolute !important');
+					//$(this).css('left', '');
+					//$(this).css('top', 25);
+					//$(this).css('right', '0px !important');
+					//$(this).css('left',0);
+
+				}
+			});
+
+			$(window).resize(function(event, ui){
+
+				$('#assetview').width($(window).width() - ($('#property-menu-wrapper').width() + 4));
+
+				setTimeout(function() {
+				    //$('#assetview').width($(window).width() - ($('#property-menu-wrapper').width() + 3));
+				  }, 100);
+
+			});
 
 			window.addEventListener("dragover",function(e){
 			  e = e || event;
@@ -140,14 +201,18 @@
 		<div id="toolbar-view">
 			<div id="tool-panel" class="panel panel-default">
 				<div id="options" class="btn-group-vertical" role="group" aria-label="...">
-					<button id="btn-grid" type="button" class="btn btn-default">
+					<button id="btn-origin" type="button" class="btn btn-default" title="Return to Origin">
+						<span class="icon-origin"></span>
+					</button>
+					<button id="btn-grid" type="button" class="btn btn-default" title="Toggle Grid">
 						<span class="icon-grid"></span>
 					</button>
-					<button id="btn-scale" type="button" class="btn btn-default">
+					---------
+					<button id="btn-scale" type="button" class="btn btn-default" title="Scale Tool">
 						<span class="icon-scale"></span>
 					</button>
-					<button id="btn-origin" type="button" class="btn btn-default">
-						<span class="icon-origin"></span>
+					<button id="btn-rotate" type="button" class="btn btn-default" title="Rotate Tool">
+						<span class="icon-rotate"></span>
 					</button>
 				</div>
 			</div>		
@@ -158,6 +223,54 @@
 		<div id="canvas-wrap">
 			<div id="mapman-canvas" class="droppable">
 			</div>
+		</div>
+
+		<div id="property-menu-wrapper" class="panel panel-default">
+			 	<div id="layer-container">
+			 		<div id="layer-tree">
+			 			
+
+			 		</div>
+			 		<div id="layer-toolbar">
+			 			<button id="btn-add-layer"></button>
+			 			<button id="btn-remove-layer"></button>
+			 		</div>
+			 	</div>
+				<div id="property-tabs">
+					<ul>
+						<li><a href="#tab-world" title="World Settings"> <span class="icon-world"></span> </a></li>
+						<li><a href="#tab-object" title="Object Settings"> <span class="icon-object"></span> </a></li>
+						<li><a href="#tab-properties" title="Selection Properties"> <span class="icon-list"></span> </a></li>
+					</ul>
+
+					<div id="tab-world" class="tab-container">
+						WORLD OPTIONS
+					</div>
+					<div id="tab-object" class="tab-container">
+						
+
+
+
+					</div>
+					<div id="tab-properties" class="tab-container">
+
+						<div id="prop-panel" class="panel panel-default">
+							<div id="prop-panel-header" class="panel-heading">Properties</div>
+								
+								<div id="prop-grid-wrapper">
+									<table id="prop-grid">
+
+									</table>
+								</div>
+								<input type="text" name="prop-name" placeholder="Enter property..." id="prop-grid-input">
+							
+						</div>
+
+
+					</div>
+
+				</div>
+ 
 		</div>
 
 		<div id="assetview" class="panel panel-default">

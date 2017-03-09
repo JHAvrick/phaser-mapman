@@ -6,8 +6,12 @@ class ObjectMaster {
 		this.pool = new ObjectPool(game);
 	}
 
-	newObject(imageKey){
-		var obj = this.factory.create(imageKey);
+	reset(){
+		this.pool.clear();
+	}
+
+	newObject(definition, imageKey){
+		var obj = this.factory.create(definition, imageKey);
 		
 		this.pool.add(obj);
 
@@ -26,9 +30,9 @@ class ObjectFactory {
 		this.keyIndex = 0;
 	}
 
-	create(imageKey){
+	create(definition, imageKey){
 		var sprite = new Phaser.Sprite( this.game, 0, 0, imageKey );
-		var wrapper = new Wrapper( 'id-' + this.idIndex++ ,'object-' + this.keyIndex++, this.game, sprite );
+		var wrapper = new Wrapper( definition, 'id-' + this.idIndex++ ,'object-' + this.keyIndex++, this.game, sprite );
 
 		return wrapper;
 	}
@@ -56,6 +60,10 @@ class ObjectPool {
 		this.birthModifiers = [];
 		this.addDeathModifiers = [];
 
+		this.pool = {};
+	}
+
+	clear(){
 		this.pool = {};
 	}
 

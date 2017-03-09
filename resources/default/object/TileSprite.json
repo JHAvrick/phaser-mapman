@@ -1,0 +1,7 @@
+{
+	"name": "TileSprite",
+	"extends": "PIXI.TilingSprite",
+	"namespace": "Phaser",
+	"parameters": 	[ "<--GAME-->" , "x", "y", "width", "height", "key", "frame"],
+	"properties": []
+}

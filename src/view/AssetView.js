@@ -71,7 +71,9 @@ class AssetView {
 			if (path){
 				if (!this.root){
 
-					this.loadDirTree(path);
+					this.events.trigger('projectDropped', path);
+
+					this.createRoot(path);
 
 				} else {
 
@@ -142,6 +144,7 @@ class AssetView {
 	}
 
 	reload(){
+		/*
 		this.tree.delete_node(this.rootNode);
 		this.clearBlocks();
 
@@ -150,18 +153,19 @@ class AssetView {
 
 		this.loadDirTree(resetRoot);
 		this.setWorkingDirectory(this.workingDirectoryNode);
+		*/
 	}
 
 	reset(){
 		this.tree.delete_node(this.rootNode);
 		this.clearBlocks();
-
-		var resetRoot = this.root;
 		this.root = null;
 	}
 
 	//Checks the working directory for a node with the given filename
 	checkFilenameExists(fileName){
+
+		console.log("Exists!");
 
 		var nodeIds = this.tree.get_node(this.workingDirectoryNode).children;	
 
@@ -180,27 +184,29 @@ class AssetView {
 	removeNodeByFilename(fileName){ 
 		var node = this.checkFilenameExists(fileName);
 
-		console.log(node);
-
 		if (node){
 			node.data.div.remove();
 			this.tree.delete_node(node);
-			this.wall.refresh();
+			this.wall.refresh();;
 		}
 	}
 
 	copyToWorkingDirectory(filePath){
 
-		this.fileAccess.copy(filePath, this.workingDirectory, (copiedPath) => {
+		this.fileAccess.copy(filePath, this.workingDirectory).then((copiedPath) => {
 
-			this.appendNode(copiedPath);
+			this.appendNode(copiedPath, this.workingDirectoryNode);
 
 		});
 
 	}
 
-	//Appends a node to the working directory and adds a block for it
-	appendNode(itemPath){
+	//Almost identical to loadDirTree except that each file is read individually rather than all files a directory
+	appendNode(itemPath, parentNode){
+
+		//If a file/node exists with the same name, remove it (as it has now been overwritted)
+		//This must be done before the new node is created
+		this.removeNodeByFilename(this.fileAccess.getFileName(itemPath));
 
 		this.fileAccess.pathInfo(itemPath, (item) => {
 
@@ -219,17 +225,13 @@ class AssetView {
 
 						}
 
-			//If a file/node exists with the same name, remove it (as it has now been overwritted)
-			//This must be done before the new node is created
-			this.removeNodeByFilename(item.name + item.ext);
-
-			this.tree.create_node( this.workingDirectoryNode , node, "last", () => {
+			this.tree.create_node( parentNode , node, "last", () => {
 
 				var newNode = this.tree.get_node(node);
 					newNode.data.div = this.addBlock(newNode);
 
-				if (item.type == 'dir'){
-					this.appendNode(itemPath, newNode);
+				if (item.type === 'dir'){
+					this.loadDirTree(itemPath, newNode);
 				}
 
 			});
@@ -238,19 +240,13 @@ class AssetView {
 
 	}
 
+	//Appends a directory node and recursively adds all child nodes  
 	loadDirTree(dirPath, parentNode){
-		if (!this.root){ 
-			this.createRoot(dirPath);
-			return;
-		}
 
 		this.fileAccess.getDirFiles(dirPath, (item, itemPath) => {
 
-			//Don't create a node for project file, but trigger an event signaling that it is found
-			if ( (item.name + item.ext) === 'project.json'){
-				this.events.trigger('projectFileFound', itemPath);
-				return;
-			}
+			//Don't create a node for project file
+			if ( (item.name + item.ext ) === 'project.json'){ return; }
 
 			var id = this.getId();
 			var node = 	{
@@ -277,7 +273,7 @@ class AssetView {
 	}
 
 	createRoot(dirPath){
-		
+
 		this.fileAccess.pathInfo(dirPath, (item) => {
 
 			if (item.type == 'dir'){

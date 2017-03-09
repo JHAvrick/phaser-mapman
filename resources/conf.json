@@ -1,0 +1,9 @@
+{
+	"gridX": 32,
+	"gridY": 32,
+	"gridOn": true,
+	"gameWidth": 600,
+	"gameHeight": 800,
+	"worldWidth": 10000,
+	"worldHeight": 10000
+}
