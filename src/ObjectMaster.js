@@ -73,6 +73,10 @@ class ObjectPool {
 		this.pool[wrapper.id] = wrapper;
 	}
 
+	get(id){
+		return this.pool[id];
+	}
+
 	addAll(objects){
 
 	}
@@ -86,6 +90,12 @@ class ObjectPool {
 		for (var wrapperId in this.pool){
 			this.applyDeathModifiers(this.pool[wrapperId]);
 			delete this.pool[wrapperId];
+		}
+	}
+
+	contains(wrapper){
+		if (this.pool[wrapper.id] !== undefined){
+			return true;
 		}
 	}
 

@@ -41,10 +41,12 @@ var EventLink = {
 		this.assetView = new AssetView(document.getElementById('freewall'), this.fileAccess);
 		this.propertyView = new PropertyView(this.game);
 		this.toolbarView = new ToolbarView();
+		this.paramView = new ParamView();
 
 		//Event Links
 		this.addMapManEvents();
 		this.addLayerEvents();
+		this.addObjectTabEvents();
 		this.addSelectionEvents();
 		this.addAssetViewEvents();
 		this.addToolbarEvents();
@@ -63,23 +65,58 @@ var EventLink = {
 
 	},
 
+	addObjectTabEvents(){
+
+		
+
+
+
+	},
+
 	addLayerEvents: function(){
 
 		this.layerView.events.on('objectSelected', (id) => {
 			console.log("Object Selected: " + id);
+
+			MapMan.Tools.Select.unselect();
+			MapMan.Tools.Select.select(MapMan.Stages.getWrapper(id));
+
 		});
 
+		/* 
+		 * EVENT: A layer is added in the LayerView
+		 * RESPONSE: MapMan.Stages points to the stage with the id passed from the event
+		 * ALSO TRIGGERS: 'layerSwitched'
+		 */
 		this.layerView.events.on('layerAdded', (id) => {
-			
 			MapMan.Stages.active.newLayer(id);
-			MapMan.Stages.active.setActiveLayer(id);
+		});
 
+		/* 
+		 * EVENT: The 'Delete Layer' button is pressed
+		 * RESPONSE: Selected/Active layer and all objects within are deleted, this cannot be undone
+		 * ALSO TRIGGERS: 'layerSwitched' (defaults to top layer in the stack)
+		 */
+		this.layerView.events.on('layerDeleted', (id) => {
+			console.log("Active Layer Deleted");
+
+			MapMan.Stages.deleteActiveLayer();
+		});
+
+		/* 
+		 * EVENT: A layer is moved, triggered even if the layer is left in its original position
+		 * RETURN: An array of layer ids in descending order
+		 * RESPONSE: Each layer is brought to top, starting with the last element of the array and ending with the first
+		 */
+		this.layerView.events.on('layerMoved', (layerIds) => {
+			MapMan.Stages.setLayerOrder(layerIds.reverse(), true);
 		});
 
 		this.layerView.events.on('layerSwitched', (id) => {
 			console.log("Active Layer Switched: " + id);
 
 			MapMan.Stages.setActiveLayer(id);
+			MapMan.Tools.Select.unselect();
 
 		});
 
@@ -183,14 +220,14 @@ var EventLink = {
 
 					var newObj = MapMan.ObjectFactory.create( MapMan.Definitions.getActive(), imageKey );
 								 MapMan.ObjectPool.add(newObj);
-								 MapMan.Stages.active.add(newObj);
-
+								
 					var x = this.game.input.mousePointer.worldX;
 					var y = this.game.input.mousePointer.worldY;
 
 					this.stageManager.addToStage(x, y, newObj);
 					this.layerView.addObject(newObj);
 
+					MapMan.Stages.active.add(newObj);
 				});
 
 			}

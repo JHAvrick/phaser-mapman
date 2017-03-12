@@ -37,8 +37,9 @@
 
 		//NODE / LIB
 		window.jQuery = window.$ = require('jquery');
-		//window.Freewall = require('freewall').Freewall;
 		window.MouseTrap = require('mousetrap');
+		window._ = require('underscore');
+
 		require('bootstrap');
 		require('jstree');
 		require('jqpropertygrid');
@@ -46,6 +47,7 @@
 
 		const PropertyView = require('./src/view/PropertyView.js');
 		const LayerView = require('./src/view/LayerView.js');
+		const ParamView = require('./src/view/ParamView.js');
 		const DefinitionMaster = require('./src/DefinitionMaster.js');
 
 		const Common = 	{
@@ -101,32 +103,26 @@
 					$(this).css('left', '');
 					$(this).css('top', 25);
 					$(this).css('right', '0px !important');
-					//$(this).css('left',0);
-
 				}
 			});
 
 			$('#layer-container').resizable({
 				handles: "s",
 				resize: function(event, ui){
-					//$(this).css('left', '');
-
-					//$('#canvas-wrap').width($(window).width() - $(this).width());
-					//$('#assetview').width($(window).width() - ($(this).width() + 4));
+					$('#tabview-wrapper').height($(window).height() - ($(this).height() + 26));
+					$('#tabview-wrapper').css('bottom', 25);
 				},
 				stop: function(event, ui){
-					//$(this).css('position','absolute !important');
-					//$(this).css('left', '');
-					//$(this).css('top', 25);
-					//$(this).css('right', '0px !important');
-					//$(this).css('left',0);
-
+					$('#tabview-wrapper').height($(window).height() - ($(this).height() + 26));
+					$('#tabview-wrapper').css('bottom', 25);
 				}
 			});
 
 			$(window).resize(function(event, ui){
 
 				$('#assetview').width($(window).width() - ($('#property-menu-wrapper').width() + 4));
+				$('#tabview-wrapper').height($(window).height() - ($('#layer-container').height() + 26));
+				$('#tabview-wrapper').css('bottom', 25);
 
 				setTimeout(function() {
 				    //$('#assetview').width($(window).width() - ($('#property-menu-wrapper').width() + 3));
@@ -152,15 +148,6 @@
 
 <body style="margin:0; padding:0">
 
-	<!--
-	<nav id="nav" class="navbar navbar-default navbar-fixed-top">
-		<div id="nav-container" class="container">
-			<div class="navbar-header">
-				<a id="testman-header" class="navbar-brand" href="#" style="font-size: 12pt">MapMan</a>
-			</div>
-		</div>
-	</nav>
-	-->
 		<div id="menu-bar">
 			<div id="menu-options" class="btn-group" role="group" aria-label="...">
 
@@ -189,8 +176,7 @@
 						</ul>
 					</div>
 
-				
-
+			
 				<button type="button" class="btn btn-default btn-sm">
 					Etc
 				</button>
@@ -236,39 +222,94 @@
 			 			<button id="btn-remove-layer"></button>
 			 		</div>
 			 	</div>
-				<div id="property-tabs">
-					<ul>
-						<li><a href="#tab-world" title="World Settings"> <span class="icon-world"></span> </a></li>
-						<li><a href="#tab-object" title="Object Settings"> <span class="icon-object"></span> </a></li>
-						<li><a href="#tab-properties" title="Selection Properties"> <span class="icon-list"></span> </a></li>
-					</ul>
 
-					<div id="tab-world" class="tab-container">
-						WORLD OPTIONS
-					</div>
-					<div id="tab-object" class="tab-container">
-						
+			 	<div id="tabview-wrapper">
+					<div id="property-tabs">
+						<ul>
+							<li><a href="#tab-world" title="World Settings"> <span class="icon-world"></span> </a></li>
+							<li><a href="#tab-object" title="Object Settings"> <span class="icon-object"></span> </a></li>
+							<li><a href="#tab-properties" title="Selection Properties"> <span class="icon-list"></span> </a></li>
+						</ul>
+
+						<div id="tab-world" class="tab-container">
+							<div id="world-panel" class="panel panel-default">
+								<div id="object-panel-header" class="panel-heading">World</div>
+									
+							</div>
+						</div>
+						<div id="tab-object" class="tab-container">
+
+							<div id="object-panel" class="panel panel-default">
+								<div id="object-panel-header" class="panel-heading">Object</div>
+								<table id="object-table">
+									<tr>
+										<td class="left-cell">
+											<div class="input-group">
+												<span class="input-group-addon"><span class="icon-key"></span></span>
+												<input id="object-key" type="text" class="form-control input-sm" placeholder="Object Key">
+											</div>
+
+											<div class="input-group">
+												<span class="input-group-addon"> <span class="icon-object"></span> </span>
+												<input id="object-type" type="text" class="form-control input-sm" placeholder="Object Type" disabled>
+											</div>
+
+											<div class="input-group">
+												<span class="input-group-addon"> <span class="icon-image"></span> </span>
+												<input id="object-type" type="text" class="form-control input-sm" placeholder="Texture" disabled>
+											</div>
+										</td>
+										<td class="right-cell"> 
+											<div id="object-texture"></div>
+										</td>
+									</tr>
+									<tr style="border: 1px solid black; width: 100%;">
+										<td class='full-cell' colspan="2">
+											<div id="object-param-panel">
+												<div class="mapman-header">Parameters</div>
+												<ul id="object-param-list">
+													<li class="item-param">
+														<div class="item-label">x</div>
+														<input type="text">
+														<button style="float: right;"></span></button>
+													</li>
+													<li class="item-param">
+														<div class="item-label">y</div>
+														<input type="text">
+														<button style="float: right;"><span class="icon-link"></span></button>
+													</li>
+													<li class="item-param">
+														<div class="item-label">game</div>
+														<input type="text">
+														<button style="float: right;"><span class="icon-link"></span></button>
+													</li>
+												</ul>
+											</div>
+										</td>
+									</tr>
+								</table>
+							</div>
 
 
 
-					</div>
-					<div id="tab-properties" class="tab-container">
+									
 
-						<div id="prop-panel" class="panel panel-default">
-							<div id="prop-panel-header" class="panel-heading">Properties</div>
-								
-								<div id="prop-grid-wrapper">
-									<table id="prop-grid">
-
-									</table>
-								</div>
-								<input type="text" name="prop-name" placeholder="Enter property..." id="prop-grid-input">
 							
 						</div>
+						
+						<div id="tab-properties" class="tab-container">
+							<div id="prop-panel" class="panel panel-default">
+								<div id="prop-panel-header" class="panel-heading">Properties</div>
+									<input type="text" name="prop-name" placeholder="Enter property..." id="prop-grid-input">
+									<div id="prop-grid-wrapper">
+										<table id="prop-grid">
 
+										</table>
+									</div>
+							</div>
+						</div>
 
 					</div>
-
 				</div>
  
 		</div>

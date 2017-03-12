@@ -42,6 +42,30 @@ class StageMaster {
 		this.active.setActiveLayer(id);
 	}
 
+	getActiveLayerId(){
+		return this.active.activeLayer.id;
+	}
+
+	deleteActiveLayer(){
+		this.active.deleteActiveLayer();
+	}
+
+	inActiveLayer(wrapper){
+		return this.active.inActiveLayer(wrapper);
+	}
+
+	getWrapper(id){
+		return this.active.getWrapper(id);
+	}
+
+	setLayerOrder(layerIds, restack){
+		this.active.setLayerOrder(layerIds, restack);
+	}
+
+	restack(){
+		this.active.restack();
+	}
+
 	action(actionObj){
 		this.active.action(actionObj);
 	}
@@ -78,9 +102,45 @@ class Scene {
 		this.all = new ObjectPool();
 		this.groups = {};	//Each group is an object pool
 
-		this.layers = {};	//Each layer is an object pool
-		this.activeLayer = undefined;
+		this.layerOrder = [];	//Holds zOrder state, each element is a layer id
+		this.layers = {};	//Each layer contains some meta and an object pool
+		this.activeLayer = undefined;  //Points to active layer, to which events will be funneled 
 
+	}
+
+	setLayerOrder(layerIds, restack){
+		this.layerOrder = layerIds;
+
+		if (restack){
+			this.restack();
+		}
+	}
+
+	restackAboveActiveLayer(){
+
+		for (var i = this.activeLayer.zOrder; i < this.layerOrder.length; i++){
+
+			console.log("Brought Up: " + this.layerOrder[i]);
+
+			this.layers[this.layerOrder[i]].objects.modifyAll((wrapper) => {
+				console.log("Brought Up: " + wrapper);
+				wrapper.display.bringToTop();			
+			});
+		}
+	}
+
+	restack(){
+		var layerIds = this.layerOrder;
+		for (var i = 0; i < layerIds.length; i++){
+			if (this.layers[layerIds[i]]){
+
+				this.layers[layerIds[i]].zOrder = i;
+				this.layers[layerIds[i]].objects.modifyAll((wrapper) => {
+					wrapper.display.bringToTop();			
+				});
+
+			}
+		}
 	}
 
 	action(actionObj){
@@ -93,9 +153,7 @@ class Scene {
 
 	activate(){
 		this.all.modifyAll(function(wrapper){
-
 			wrapper.activate();
-
 		}.bind(this));
 	}
 
@@ -106,11 +164,19 @@ class Scene {
 	add(wrapper){
 		this.all.add(wrapper);
 		this.activeLayer.objects.add(wrapper);
+		this.restackAboveActiveLayer();	//Restack so that the object is in the correct z-order
 	}
 
 	newLayer(id){
 		if (!this.layers[id]){
-			this.layers[id] = { name: id, actions: new ActionStack(), objects: new ObjectPool() };
+			this.layers[id] = 	{ 
+								id: id, 
+								zOrder: this.layerOrder.length, 
+								name: id, actions: new ActionStack(), 
+								objects: new ObjectPool() 
+								};
+
+			this.layerOrder.push(id);
 
 			return id;
 		}
@@ -127,7 +193,6 @@ class Scene {
 	addToLayer(id, wrapper){
 		if (this.layers[id]){
 			this.layers[id].objects.add(wrapper);
-			
 			return;
 		}
 
@@ -135,15 +200,41 @@ class Scene {
 	}
 
 	setActiveLayer(id){
+		if (this.activeLayer){
+			this.activeLayer.objects.modifyAll((wrapper) =>{
+				wrapper.display.inputEnabled = false;
+			});
+		}
+
 		if (this.layers[id]){
 			this.activeLayer = this.layers[id];
 		}
+
+		this.activeLayer.objects.modifyAll((wrapper) =>{
+			wrapper.display.inputEnabled = true;
+		});
+	}
+
+	inActiveLayer(wrapper){
+		return this.activeLayer.objects.contains(wrapper);
+	}
+
+	deleteActiveLayer(){
+		this.activeLayer.objects.modifyAll((wrapper) => {
+			wrapper.delete();
+		});
+
+		this.layerOrder.splice(this.layerOrder.indexOf(this.activeLayer.id), 1);
+		delete this.layers[this.activeLayer.id];
 	}
 
 	getActiveLayerObjects(){
 		return this.activeLayer.objects.getAllAsArray();
 	}
 
+	getWrapper(id){
+		return this.activeLayer.objects.get(id);
+	}
 
 	addGroup(key){
 		if (!this.groups[key]){
@@ -198,13 +289,11 @@ class StagePool {
 		this.game = game;
 		this.birthModifiers = [];
 		this.addDeathModifiers = [];
-
 		this.pool = {};
 	}
 
 	add(stage){
 		this.applyBirthModifiers(stage);
-
 		this.pool[stage.id] = stage;
 	}
 

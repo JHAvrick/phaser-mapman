@@ -54,11 +54,15 @@ class Selector {
 		this.multiSelect = undefined;
 		this.triggerEditOnRelease = false;	//Flag to prevent every single mouseup event from triggering the selectionEdit event
 
-		this.selectBox = this.stage.add.graphics(0, 0);
-		this.selectBox.beginFill(0xadd8e6 , .8);
-		this.selectBox.drawRect(0, 0, 100, 100);
-		this.selectBox.alpha = .2;
+		var graphics = this.stage.add.graphics(0, 0);
+			graphics.beginFill(0x00ff00, .8);
+			graphics.drawRect(0, 0, 100, 100);
+			graphics.visible = false;
+		var texture = graphics.generateTexture();
+
+		this.selectBox = this.stage.add.sprite(0,0, texture);
 		this.selectBox.visible = false;
+		this.selectBox.alpha = .5;
 
 		this.Scale = new Scaler(this.stage);
 		this.subTools = [this.Scale];
@@ -110,15 +114,17 @@ class Selector {
 	}
 
 	select(wrapper){
-		this.selection = wrapper;
-		this.triggerEditOnRelease = true;
-		this.selection.select();
+		if (MapMan.Stages.inActiveLayer(wrapper)){
+			this.selection = wrapper;
+			this.triggerEditOnRelease = true;
+			this.selection.select();
 
-		if (this.activeSubTool){
-			this.activeSubTool.start(wrapper);
+			if (this.activeSubTool){
+				this.activeSubTool.start(wrapper);
+			}
+
+			this.events.trigger('selectionChanged', this.selection);
 		}
-
-		this.events.trigger('selectionChanged', this.selection);
 	}
 
 	unselect(){
@@ -141,6 +147,7 @@ class Selector {
 
 	startMultiSelect(){
 		this.multiSelect = true;
+		this.selectBox.bringToTop();
 		this.selectBox.visible = true;
 
 		this.mouseDownX = this.stage.input.mousePointer.screenX;
@@ -650,10 +657,10 @@ class Grid {
 			MapMan.ObjectPool.modifyAll(function(wrapper){
 
 				wrapper.display.input.enableSnap(this.gridX, this.gridY, true, true);
-				wrapper.display.bringToTop();
-				this.stage.world.bringToTop(wrapper.bounds);
+				//this.stage.world.bringToTop(wrapper.bounds);
 
 			}.bind(this));
+			MapMan.Stages.restack();
 			MapMan.Tools.Select.Scale.setHandleSnap(this.gridX, this.gridY);
 
 		}

@@ -2,8 +2,22 @@
 	"name": "Sprite",
 	"extends": "PIXI.Sprite",
 	"namespace": "Phaser",
-	"parameters": 	[ "<--GAME-->" , "x", "y", "key", "frame"],
-	"propertyMeta": {	
+	"parameters": {
+					"game": "<GAME>",
+					"x": null,
+					"y": null,
+					"key": null,
+					"frame": null
+	},
+	"properties": {},
+	"parameterMeta": 	{	
+						"game": { "type": "special" }, 
+						"x": { "type": "link" },
+						"y": { "type": "link" },
+						"key": { "type": "link" },
+						"frame": { "type": "link" }
+	},
+	"propertyMeta": {
 						"alive": {"type": "boolean"},
 						"alpha": {"type": "number", "step": 0.05 },
 						"anchor": { "spread": ["anchor.x", "anchor.y"] },
@@ -63,7 +77,7 @@
 						"input": { "type": "text", "uneditable": true },
 						"inputEnabled": {"type": "boolean", "doNotApply": true },
 						"inWorld": { "type": "boolean", "uneditable": true },
-						"key": {"type": "text"},
+						"key": {"type": "text", "uneditable": true},
 						"left": {"type": "number"},
 						"lifespan": {"type": "number", "doNotApply": true },
 						"maxHealth": {"type": "number"},

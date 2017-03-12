@@ -37,6 +37,10 @@ class PropertyView {
 			propRow.row.parentNode.removeChild(propRow.row);
 		});
 
+		if (editorMeta.isParameter){
+			removeBtn.disabled = true;
+		}
+
 		this.inputs[name] = editor;
 
 		return editor;
