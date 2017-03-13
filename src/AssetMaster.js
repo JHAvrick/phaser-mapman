@@ -1,12 +1,19 @@
-class AssetMaster {
-
+class AssetManager {
 	constructor(game){
 		this.game = game;
 
-		this.loader = new AssetLoader(game);
-		this.pool = new AssetPool(game);
-
+		this.images = {};
+		this.atlases = {};
 	}
+
+//-----------------------------------------------ASSET POOLING------------------------------------------------------
+
+	getImagePath(key){
+		return this.images[key].path;
+	}
+
+
+//-----------------------------------------------ASSET LOADING------------------------------------------------------
 
 	load(assetPath, callback){
 
@@ -25,8 +32,8 @@ class AssetMaster {
 						
 					} else {
 
-						this.loader.loadImage(filename, assetPath, callback);
-						this.pool.addImage(filename); //Add to pool with filename as key
+						this.loadImage(filename, assetPath, callback);
+						this.images[filename] = {key: filename, path: assetPath};
 
 					}
 				break;
@@ -34,14 +41,6 @@ class AssetMaster {
 				//TO DO: Load JSON, ask user what to load it as
 				break;
 		}
-	}
-
-}
-
-
-class AssetLoader {
-	constructor(game){
-		this.game = game;
 	}
 
 	loadImage(key, path, callback){
@@ -109,23 +108,4 @@ class AssetLoader {
 		this.game.cache.removeImage(key, true);	//Remove from cache
 	}
 
-}
-
-class AssetPool{
-	constructor(game){
-		this.game = game;
-
-		this.images = {};
-		this.spriteSheets = {};
-		this.atlas = {};
-		this.physics = {};
-	}
-
-	addImage(key, path){
-		this.images[key] = {key: key, path: path}
-	}
-
-	removeImage(key){
-		delete this.images[key];
-	}
 }

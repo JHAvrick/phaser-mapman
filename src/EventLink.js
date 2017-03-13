@@ -1,26 +1,41 @@
 var EventLink = {
 
-	preload(){ 
+	init(){
 
 		MapMan.events = new EventManager();
-		//MapMan.Objects = new ObjectMaster(this.game);
-		MapMan.ObjectPool = new ObjectPool(this.game);
-		MapMan.ObjectFactory = new ObjectFactory(this.game);
+		MapMan.ObjectPool = new ObjectPool(Game);
+		MapMan.ObjectFactory = new ObjectFactory(Game);
+		MapMan.Stages = new StageMaster(Game);
+		MapMan.Assets = new AssetManager(Game);
+		MapMan.Tools = new ToolBox(Game);
+		MapMan.Definitions = new DefinitionMaster(Game);
+		MapMan.Settings = {
 
-		MapMan.Stages = new StageMaster(this.game);
-		MapMan.Assets = new AssetMaster(this.game);
-		MapMan.Definitions = new DefinitionMaster(this.game);
-		MapMan.Tools = new ToolBox(this.game);
-		MapMan.globalReset = function(){
+			settingsMap: {
+					backgroundColor: (color) => { Game.stage.backgroundColor = color; },
+					gridSize: (size) => { 
+						MapMan.Tools.Grid.setSize(size);
+						MapMan.Tools.Select.Scale.setHandleSnapSize(size); 
+					},
+					gridColor: (hexString) => { MapMan.Tools.Grid.setColor(parseInt(hexString.replace('#', '0x', 16))); },
+					frameWidth: (width) => {}, //TBD
+					frameHeight: (height) => {} //TBD
+			},
 
-			//this.Objects.reset();
-			//this.Stages.reset();
-			//this.Assets.reset();
-			//this.Tools.reset();
-
-			this.events.trigger('globalReset');
+			set: function(settings){
+				for (var key in settings){
+					if (settings[key] !== undefined){
+						this.settingsMap[key](settings[key]);
+					}
+				}
+			}
 
 		}
+
+		MapMan.globalReset = function(){
+			this.events.trigger('globalReset');
+		}
+
 	},
 
 	render(){
@@ -42,8 +57,11 @@ var EventLink = {
 		this.propertyView = new PropertyView(this.game);
 		this.toolbarView = new ToolbarView();
 		this.paramView = new ParamView();
+		this.tabView = new TabView('property-tabs');
 
 		//Event Links
+		this.addForms();
+		this.addTabEvents();
 		this.addMapManEvents();
 		this.addLayerEvents();
 		this.addObjectTabEvents();
@@ -65,22 +83,178 @@ var EventLink = {
 
 	},
 
+	addForms(){
+
+		//Object info in Object tab
+		this.objectForm = new FormView([{
+											name: 'name',
+											id: 'object-name',
+											refresh: (wrapper) => { return wrapper.name; },
+											onChange: (value) => {
+												var wrapper = MapMan.Tools.Select.getSelection();
+
+												if (wrapper){
+													wrapper.setName(value);
+												}
+
+											}
+										},
+										{
+											name: 'type',
+											id: 'object-type',
+											refresh: (wrapper) => { return wrapper.definition.name }
+										},
+										{
+											name: 'textureKey',
+											id: 'texture-key',
+											refresh: (wrapper) => { return wrapper.display.key }
+										},
+										{
+											name: 'texturePreview',
+											id: 'texture-preview',
+											assign: 'style.backgroundImage',
+											refresh: (wrapper) => { 
+												return 'url("' + MapMan.Assets.getImagePath(wrapper.display.key) +'")';
+											}
+										}
+									]);
+
+
+		this.preferenceForm = new FormView([{
+												name: 'backgroundColor',
+												id: 'editor-color-pref',
+											},
+											{
+												name: 'gridSize',
+												id: 'grid-size-pref',
+											},
+											{
+												name: 'gridColor',
+												id: 'grid-color-pref',
+											},
+											{
+												name: 'frameWidth',
+												id: 'frame-width-pref',
+											},
+											{
+												name: 'frameHeight',
+												id: 'frame-height-pref',
+											}
+										]);
+
+
+	},
+
+	//Almost every tab displays information related to the current selection
+	//Instead of mass updating each tab every time an object-modifying event 
+	//occurs (which can be costly, performance-wise), the TabView informs only 
+	//the active tab that it should update its display.
+	addTabEvents(){
+
+		var worldTab = {
+			selectionChanged: () => {},
+			selectionEdited: () => {},
+		};
+
+		var objectTab = {
+
+			refresh: (wrapper) => {
+				this.paramView.clear();
+
+				if (wrapper) {
+					this.paramView.addAll(wrapper.getParams());
+					this.objectForm.refresh(wrapper);
+				}
+
+			},
+
+			selectionChanged: (wrapper) => {
+				this.paramView.clear();
+				this.paramView.addAll(wrapper.getParams());
+				this.objectForm.refresh(wrapper);
+			},
+			selectionEdited: (wrapper) => {
+				this.paramView.setAll(wrapper.getParams());
+			},
+			unselect: () => {
+				this.paramView.clear();
+				this.objectForm.clear();
+			}
+		};
+			
+		var propertiesTab = {
+			refresh: (wrapper) => {
+				this.propertyView.clear();
+
+				if (wrapper){
+					this.propertyView.addAll(wrapper.getTracked());
+				}
+				
+			},
+			selectionChanged: (wrapper) => {
+				this.propertyView.clear();
+				this.propertyView.addAll(wrapper.getTracked());
+			},
+			selectionEdited: (wrapper) => {
+				this.propertyView.setAll(wrapper.getTracked());
+			},
+			unselect: () => {
+				this.propertyView.clear();
+			}
+		};
+
+		this.tabView.addTab('world', worldTab);
+		this.tabView.addTab('object', objectTab);
+		this.tabView.addTab('properties', propertiesTab);
+		this.tabView.setActive('world');
+
+		this.tabView.events.on('tabSwitched', (activeTab) => {
+
+			var wrapper = MapMan.Tools.Select.getSelection();
+
+			this.tabView.triggerActive('refresh', wrapper);
+
+		});
+
+	},
+
 	addObjectTabEvents(){
 
-		
+		this.paramView.events.on('parameterLinkToggled', (name) => {
+			var wrapper = MapMan.Tools.Select.getSelection();
 
+			if (wrapper){
+				wrapper.toggleParamLink(name);
 
+				this.paramView.clear();
+				this.paramView.addAll(wrapper.getParams());
+			}
+
+		});
+
+		this.paramView.events.on('parameterEdited', (name, value) => {
+			var wrapper = MapMan.Tools.Select.getSelection();
+
+			if (wrapper){
+				wrapper.setParamValue(name, value);
+
+				this.paramView.clear();
+				this.paramView.addAll(wrapper.getParams());
+			}
+
+		});
 
 	},
 
 	addLayerEvents: function(){
 
+		/* 
+		 * EVENT: An object node is selected in the layer view
+		 * RESPONSE: Id is fetched and used to select the object with the same array in the editor
+		 */
 		this.layerView.events.on('objectSelected', (id) => {
-			console.log("Object Selected: " + id);
-
 			MapMan.Tools.Select.unselect();
 			MapMan.Tools.Select.select(MapMan.Stages.getWrapper(id));
-
 		});
 
 		/* 
@@ -93,13 +267,20 @@ var EventLink = {
 		});
 
 		/* 
+		 * EVENT: Triggered when a layer other than the active one is selected
+		 * RESPONSE: Active layer is changed
+		 */
+		this.layerView.events.on('layerSwitched', (id) => {
+			MapMan.Tools.Select.unselect();
+			MapMan.Stages.setActiveLayer(id);
+		});
+
+		/* 
 		 * EVENT: The 'Delete Layer' button is pressed
 		 * RESPONSE: Selected/Active layer and all objects within are deleted, this cannot be undone
 		 * ALSO TRIGGERS: 'layerSwitched' (defaults to top layer in the stack)
 		 */
 		this.layerView.events.on('layerDeleted', (id) => {
-			console.log("Active Layer Deleted");
-
 			MapMan.Stages.deleteActiveLayer();
 		});
 
@@ -112,20 +293,21 @@ var EventLink = {
 			MapMan.Stages.setLayerOrder(layerIds.reverse(), true);
 		});
 
-		this.layerView.events.on('layerSwitched', (id) => {
-			console.log("Active Layer Switched: " + id);
-
-			MapMan.Stages.setActiveLayer(id);
-			MapMan.Tools.Select.unselect();
-
-		});
-
+		/* 
+		 * EVENT: Triggered when the 'visible' icon is toggled off in the layer view
+		 * RESPONSE: All objects in the hidden layer are deactivated, but can still be selected via the layerview nodes
+		 */
 		this.layerView.events.on('layerHidden', (id) => {
-			console.log("Layer Hidden: " + id);
+			MapMan.Tools.Select.unselect();
+			MapMan.Stages.hideLayer(id);
 		});
 
+		/* 
+		 * EVENT: Triggered when the 'visible' icon is toggled on in the layer view
+		 * RESPONSE: Reactivates a layer's objects
+		 */
 		this.layerView.events.on('layerUnhidden', (id) => {
-			console.log("Layer Unhidden: " + id);
+			MapMan.Stages.unhideLayer(id);
 		});
 
 	},
@@ -134,27 +316,25 @@ var EventLink = {
 
 		MapMan.Tools.Select.events.on('selectionChanged', (wrapper) => {
 
-			var selection = MapMan.Tools.Select.getSelection();
+			var wrapper = MapMan.Tools.Select.getSelection();
 
-			if (selection){
-				this.propertyView.clear();
-				this.propertyView.addAll(wrapper.getTracked());
+			if (wrapper){
+				this.tabView.triggerActive('selectionChanged', wrapper);
 			}
 
 		});
 
 		MapMan.Tools.Select.events.on('selectionEdited', (wrapper) => {
+			var wrapper = MapMan.Tools.Select.getSelection()
 
 			if (wrapper){
-
-				this.propertyView.setAll(wrapper.getTracked());
-
+				this.tabView.triggerActive('selectionEdited', wrapper);
 			}
 
 		});
 
 		MapMan.Tools.Select.events.on('unselect', () => {
-			this.propertyView.clear();
+			this.tabView.triggerActive('unselect');
 		});
 
 	},
@@ -228,6 +408,8 @@ var EventLink = {
 					this.layerView.addObject(newObj);
 
 					MapMan.Stages.active.add(newObj);
+					MapMan.Stages.setLayerOrder(this.layerView.getLayerOrder().reverse(), true); //Refresh the layer order
+
 				});
 
 			}
@@ -295,6 +477,7 @@ var EventLink = {
 					copy: document.getElementById('edit-copy'),
 					paste: document.getElementById('edit-paste'),
 					duplicate: document.getElementById('edit-duplicate'),
+					preferences: document.getElementById('edit-preferences'),
 
 					}
 
@@ -335,6 +518,29 @@ var EventLink = {
 				this.assetView.createRoot(rootDir);
 				this.projectManager.loadProject(rootDir);
 
+			});
+			
+		});
+
+		/* 
+		 * EVENT: "Preferences" is clicked from menu bar
+		 * RESPONSE: Preference modal menu is opened
+		 */
+		Edit.preferences.addEventListener('click', (event) => {	
+
+			$( '#preference-menu' ).dialog({
+				modal: true,
+				width: 600,
+				height: 300,
+				resizable: false,
+				buttons: {
+					Apply: () => {
+						$('#preference-menu').dialog('close');
+
+						MapMan.Settings.set(this.preferenceForm.bundle());
+
+					}
+				}
 			});
 			
 		});

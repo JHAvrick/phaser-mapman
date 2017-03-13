@@ -2,7 +2,7 @@
 var MapMan = {};
 var Editor = {};
 
-var stage = new Phaser.Game(600, 800, Phaser.WEBGL, 'mapman-canvas');
+var Game = new Phaser.Game(600, 800, Phaser.WEBGL, 'mapman-canvas');
 
 var EditorSetup = {
 
@@ -10,7 +10,6 @@ var EditorSetup = {
 
 		this.game.load.image('handle-drag','resources/handles/handle-drag.png');
 		this.game.load.image('origin','resources/handles/origin.png');
-
 	},
 
 	create: function(){
@@ -27,6 +26,6 @@ var EditorSetup = {
 
 }
 
-stage.state.add('EditorSetup', EditorSetup);
-stage.state.add('EventLink',  EventLink);
-stage.state.start('EditorSetup');
+Game.state.add('EditorSetup', EditorSetup);
+Game.state.add('EventLink',  EventLink);
+Game.state.start('EditorSetup');

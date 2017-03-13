@@ -49,6 +49,9 @@
 		const LayerView = require('./src/view/LayerView.js');
 		const ParamView = require('./src/view/ParamView.js');
 		const DefinitionMaster = require('./src/DefinitionMaster.js');
+		const TabView = require('./src/view/TabView.js');
+		const AssetPreview = require('./src/view/AssetPreview.js');
+		const FormView = require('./src/view/FormView.js');
 
 		const Common = 	{
 							fs: require('fs'),
@@ -71,7 +74,7 @@
 				}
 			});
 
-			$("#property-tabs").tabs();
+			$('#preference-tabs').tabs().addClass('ui-tabs-vertical ui-helper-clearfix');
 
 			$('#assetview').resizable({
 				handles: "n",
@@ -127,7 +130,6 @@
 				setTimeout(function() {
 				    //$('#assetview').width($(window).width() - ($('#property-menu-wrapper').width() + 3));
 				  }, 100);
-
 			});
 
 			window.addEventListener("dragover",function(e){
@@ -173,6 +175,7 @@
 							<li><a href="#" id="edit-copy">Copy</a></li>
 							<li><a href="#" id="edit-paste">Paste</a></li>
 							<li><a href="#" id="edit-duplicate">Duplicate</a></li>
+							<li><a href="#" id="edit-preferences">Preferences</a></li>
 						</ul>
 					</div>
 
@@ -234,7 +237,7 @@
 						<div id="tab-world" class="tab-container">
 							<div id="world-panel" class="panel panel-default">
 								<div id="object-panel-header" class="panel-heading">World</div>
-									
+																	
 							</div>
 						</div>
 						<div id="tab-object" class="tab-container">
@@ -246,7 +249,7 @@
 										<td class="left-cell">
 											<div class="input-group">
 												<span class="input-group-addon"><span class="icon-key"></span></span>
-												<input id="object-key" type="text" class="form-control input-sm" placeholder="Object Key">
+												<input id="object-name" type="text" class="form-control input-sm" placeholder="Object Key">
 											</div>
 
 											<div class="input-group">
@@ -256,11 +259,11 @@
 
 											<div class="input-group">
 												<span class="input-group-addon"> <span class="icon-image"></span> </span>
-												<input id="object-type" type="text" class="form-control input-sm" placeholder="Texture" disabled>
+												<input id="texture-key" type="text" class="form-control input-sm" placeholder="Texture" disabled>
 											</div>
 										</td>
 										<td class="right-cell"> 
-											<div id="object-texture"></div>
+											<div id="texture-preview"></div>
 										</td>
 									</tr>
 									<tr style="border: 1px solid black; width: 100%;">
@@ -268,33 +271,12 @@
 											<div id="object-param-panel">
 												<div class="mapman-header">Parameters</div>
 												<ul id="object-param-list">
-													<li class="item-param">
-														<div class="item-label">x</div>
-														<input type="text">
-														<button style="float: right;"></span></button>
-													</li>
-													<li class="item-param">
-														<div class="item-label">y</div>
-														<input type="text">
-														<button style="float: right;"><span class="icon-link"></span></button>
-													</li>
-													<li class="item-param">
-														<div class="item-label">game</div>
-														<input type="text">
-														<button style="float: right;"><span class="icon-link"></span></button>
-													</li>
 												</ul>
 											</div>
 										</td>
 									</tr>
 								</table>
 							</div>
-
-
-
-									
-
-							
 						</div>
 						
 						<div id="tab-properties" class="tab-container">
@@ -327,8 +309,41 @@
 		  </div>
 		</div>
 	
-
-
+		<div id="preference-menu" title="Preferences" class="modal">
+			<div id="preference-tabs">
+				<ul>
+					<li><a href="#editor">Editor</a></li>
+					<li><a href="#grid">Grid</a></li>
+					<li> <a href="#frame">Frame</a></li>
+				</ul>
+					<div id="editor">
+						<div class="input-group">
+							<span class="input-group-addon">Background</span>
+							<input id="editor-color-pref" type="color" class="form-control input-sm" placeholder="Grid Size">
+						</div>	
+					</div>
+					<div id="grid">
+						<div class="input-group">
+							<span class="input-group-addon">Size (px)</span>
+							<input id="grid-size-pref" type="number" value="32" min="15" max="500" class="form-control input-sm" placeholder="Grid Size">
+						</div>
+						<div class="input-group">
+							<span class="input-group-addon">Color</span>
+							<input id="grid-color-pref" type="color" value="#ffffff" class="form-control input-sm" placeholder="Grid Size">
+						</div>				
+					</div>
+					<div id="frame">
+						<div class="input-group">
+							<span class="input-group-addon">Width</span>
+							<input id="frame-width-pref" type="number" value="600" class="form-control input-sm">
+						</div>
+						<div class="input-group">
+							<span class="input-group-addon">Height</span>
+							<input id="frame-height-pref" type="number" value="800" class="form-control input-sm">
+						</div>
+					</div>
+			</div>
+		</div>
 
 </body>
 </html>

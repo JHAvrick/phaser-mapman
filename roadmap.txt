@@ -30,89 +30,26 @@ STRUCTURE:
 
 BUGS:
 
-	CURRENT: 
-		
 
-		[] Mouse position not adjusted correctly when game is scaled causing objects to appear far from where they are dropped
+LEFT TO DO:
+	
+	- Rotate Tool
+	- Correct position on zoom in / out
+	- Load sprite atlas via drag and drop
+	- Load stage via drag and drop
+	- Create object defintions for Image, Button, Tilesprite...
+	- Create prefabs from existing objects
+	- Duplicate objects
+	- Duplicate layers?
+	- Create new defintion
+	- Drag object jsons directly onto the stage
+	- Create 'Frame' tool
+	- Compile final project 
+	- Rename layers
+	- Bring object to top
+	- Keyboard shortcuts
+	- Menu option callbacks
+	- MapMan Phaser Plugin
+	- UI Improvements
 
 	
-	FIXED: 
-
-		[x] Navigation via mouse is not working correctly
-
-		[x] AssetView id system is defunct
-			- Files with same name and extension cause issues (both within root directory tree but not in same directory)
-			- Drag onto canvas fails under certain circumstances 
-				> FIX: Completele refactor
-
-		[x] A object move action is added to the Undo stack anytime an object is clicked, even if it has not actually moved anywhere
-			> FIX: Moved action registration to drag-stop event and compared current position to old position before registering action
-
-WORKFLOW:
-	Estimated Project Time Remaining: 14 days
-
-	TO DO:
-
-		BASIC FUNCTIONS:
-			[] Create new working directory
-			[] Open existing working directory
-
-
-		GENERAL:
-			[] Creating new projects
-			[] Project loading
-			[] Projec saving
-
-		UI:
-			[] Create right-side UI pane w/ tabs
-			[] Ability to drag assets into asset view
-
-		EDITOR:
-			[] Create property editor
-			[] Create scale tool
-			[] Create rotate
-
-
-	Schedule:
-
-		End Date: March 15
-
-		-------------------------------------------------------------
-		| 3 / 3 / 17												|
-		-------------------------------------------------------------
-		|  To Do - AssetView:                                       |
-		|   [x] Refactor AssetView                                  |
-		|   [x] Create new working directory                        |
-		|   [x] Open existing working directory                     |
-		|   [-] Drag assets and directories into AssetView          |
-		|                                                           |					
-		|___________________________________________________________|	
-
-		-------------------------------------------------------------
-		| 3 / 4 / 17												|
-		-------------------------------------------------------------
-		|  To Do - AssetView:                                       |
-		|   [x] Drag assets and directories into AssetView          |
-		|   [ ] Create scaling tool                                 |
-		|                                                           |	
-		|___________________________________________________________|
-
-		-------------------------------------------------------------
-		| 3 / 6 / 17												|
-		-------------------------------------------------------------
-		|  To Do - AssetView:                                       |
-		|   [ ] Create rotate tool                                  |
-		|                                                           |	
-		|___________________________________________________________|	
-		
-		-------------------------------------------------------------
-		| 3 / 7 / 17												|
-		-------------------------------------------------------------
-		|  To Do - AssetView:                                       |
-		|   [ ] Create selection editor UI                          |
-		|                                                           |	
-		|___________________________________________________________|
-
-
-
-

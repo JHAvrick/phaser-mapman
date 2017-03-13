@@ -73,6 +73,14 @@ class StageMaster {
 	undo(){
 		this.active.undo();
 	}
+
+	unhideLayer(id){
+		this.active.unhideLayer(id);
+	}
+
+	hideLayer(id){
+		this.active.hideLayer(id);
+	}
 }
 
 class StageFactory {
@@ -147,6 +155,18 @@ class Scene {
 		this.activeLayer.actions.register(actionObj);
 	}
 
+	unhideLayer(id){
+		this.layers[id].objects.modifyAll((wrapper) => {
+			wrapper.activate();
+		});
+	}
+
+	hideLayer(id){
+		this.layers[id].objects.modifyAll((wrapper) => {
+			wrapper.deactivate();
+		});
+	}
+
 	undo(){
 		this.activeLayer.actions.undo();
 	}
@@ -164,7 +184,7 @@ class Scene {
 	add(wrapper){
 		this.all.add(wrapper);
 		this.activeLayer.objects.add(wrapper);
-		this.restackAboveActiveLayer();	//Restack so that the object is in the correct z-order
+		//this.restackAboveActiveLayer();	//Restack so that the object is in the correct z-order
 	}
 
 	newLayer(id){

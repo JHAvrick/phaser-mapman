@@ -304,6 +304,15 @@ class Handle extends Phaser.Sprite {
 		this.dragStartY = this.y;
 	}
 
+	setSnapSize(size){
+		this.gridX = size;
+		this.gridY = size;
+
+		if (this.snapEnabled){
+			this.input.enableSnap(this.gridX, this.gridY, true, true);
+		}
+	}
+
 	toggleSnap(gridX, gridY){
 		if (this.snapEnabled){
 
@@ -413,6 +422,12 @@ class Scaler {
 		this.rightTop = new Handle(this.stage, handleTexture, 'topRight');
 		this.rightBottom = new Handle(this.stage, handleTexture, 'bottomRight');
 		this.handles = [this.leftTop, this.leftBottom, this.rightTop, this.rightBottom];
+	}
+
+	setHandleSnapSize(size){
+		this.handles.forEach((handle) => {
+			handle.setSnapSize(size);
+		});	
 	}
 
 	setHandleSnap(gridX, gridY){
@@ -598,6 +613,7 @@ class Grid {
 		this.gridSprites = [];
 		this.gridX = 32;
 		this.gridY = 32;
+		this.gridColor = 0xffffff;
 
 		//Sprite marking grid origin
 		this.originSprite = this.stage.add.sprite(0,0, 'origin');
@@ -615,13 +631,25 @@ class Grid {
 
 	}
 
-	setGridSize(gridX, gridY){
-		if (gridx !== this.gridX || gridY !== this.gridY){
-			this.gridSprites = [];
+	setColor(hex){
+		this.gridColor = hex;
 
-			if (this.gridOn){
+		if (this.gridOn) {
+			this.destroyGrid();
+			this.drawGrid();
+		}	
+	}
+
+	setSize(gridSize){
+		if (gridSize !== this.gridX || gridSize !== this.gridY){
+
+			this.gridX = gridSize;
+			this.gridY = gridSize;
+
+			if (this.gridOn) {
 				this.destroyGrid();
 				this.drawGrid();
+				this.enableObjectSnap();
 			}	
 		}
 	}
@@ -653,23 +681,26 @@ class Grid {
 			this.gridOn = true;
 			this.originSprite.visible = true;
 
-			//Bring objects up above grid
-			MapMan.ObjectPool.modifyAll(function(wrapper){
-
-				wrapper.display.input.enableSnap(this.gridX, this.gridY, true, true);
-				//this.stage.world.bringToTop(wrapper.bounds);
-
-			}.bind(this));
-			MapMan.Stages.restack();
-			MapMan.Tools.Select.Scale.setHandleSnap(this.gridX, this.gridY);
-
+			this.enableObjectSnap();
+			MapMan.Tools.Select.Scale.setHandleSnap(this.gridX, this.gridY); //This should be moved to a 'gridOn' event or something
 		}
 
 	}
 
+	//This should be moved to a 'gridOn' event or something
+	enableObjectSnap(){
+		MapMan.ObjectPool.modifyAll(function(wrapper){
+
+			wrapper.display.input.enableSnap(this.gridX, this.gridY, true, true);
+			this.stage.world.bringToTop(wrapper.bounds);
+
+		}.bind(this));
+		MapMan.Stages.restack();	
+	}
+
 	getGridTexture(){
 		var grid = this.stage.add.graphics(0, 0);
-			grid.lineStyle(1, 0xffffff, 1);
+			grid.lineStyle(1, this.gridColor, 1);
 			grid.visible = false;
 
 		for (var w = 0; w < 20; w++){

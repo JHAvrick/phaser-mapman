@@ -30,7 +30,7 @@ class LayerView {
 									return true;  //allow all other operations
 						}
 					},
-			"plugins": ["wholerow", "dnd", "crrm"],
+			"plugins": ["wholerow", "dnd"],
 			"dnd": {
 				check_while_dragging: true
 			}
@@ -81,10 +81,7 @@ class LayerView {
 		$('#layer-tree').on('move_node.jstree', (node, parent, position) => {
 			console.log("Node Moved!");
 
-			var rootNode = this.tree.get_node({id: '#' });
-
-			this.events.trigger('layerMoved', rootNode.children)
-
+			this.events.trigger('layerMoved', this.getLayerOrder());
 		});
 
 
@@ -252,6 +249,11 @@ class LayerView {
 	numOfLayers(){
 		var rootNode = this.tree.get_node({id: '#' });
 		return rootNode.children.length;
+	}
+
+	getLayerOrder(){
+		var rootNode = this.tree.get_node({id: '#' });
+		return _.clone(rootNode.children); //Clone the children, because jstree actively reads from the array
 	}
 
 	defaultActiveLayer(){
