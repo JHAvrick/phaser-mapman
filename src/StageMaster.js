@@ -127,11 +127,7 @@ class Scene {
 	restackAboveActiveLayer(){
 
 		for (var i = this.activeLayer.zOrder; i < this.layerOrder.length; i++){
-
-			console.log("Brought Up: " + this.layerOrder[i]);
-
 			this.layers[this.layerOrder[i]].objects.modifyAll((wrapper) => {
-				console.log("Brought Up: " + wrapper);
 				wrapper.display.bringToTop();			
 			});
 		}
@@ -156,12 +152,14 @@ class Scene {
 	}
 
 	unhideLayer(id){
+		this.layers[id].hidden = false;
 		this.layers[id].objects.modifyAll((wrapper) => {
 			wrapper.activate();
 		});
 	}
 
 	hideLayer(id){
+		this.layers[id].hidden = true;
 		this.layers[id].objects.modifyAll((wrapper) => {
 			wrapper.deactivate();
 		});
@@ -184,13 +182,16 @@ class Scene {
 	add(wrapper){
 		this.all.add(wrapper);
 		this.activeLayer.objects.add(wrapper);
-		//this.restackAboveActiveLayer();	//Restack so that the object is in the correct z-order
+		if (this.activeLayer.hidden){
+			wrapper.deactivate();
+		}
 	}
 
 	newLayer(id){
 		if (!this.layers[id]){
 			this.layers[id] = 	{ 
 								id: id, 
+								hidden: false,
 								zOrder: this.layerOrder.length, 
 								name: id, actions: new ActionStack(), 
 								objects: new ObjectPool() 

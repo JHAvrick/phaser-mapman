@@ -39,6 +39,9 @@ var EventLink = {
 	},
 
 	render(){
+		//if (MapMan.Tools.Select.selection !== undefined){
+		//	this.game.debug.spriteBounds(MapMan.Tools.Select.selection.display);
+		//}
 		//var pos = MapMan.Tools.Zoom.adjustedPosition(this.game.input.mousePointer.worldX, this.game.input.mousePointer.worldY);
 		//this.game.debug.text('X: ' + pos.x + ' Y: ' + pos.y, 32, 32);
 	},
@@ -52,12 +55,12 @@ var EventLink = {
 		this.stageManager = new StageManager(this.game);
 
 		//UI Components
-		this.layerView = new LayerView();
-		this.assetView = new AssetView(document.getElementById('freewall'), this.fileAccess);
-		this.propertyView = new PropertyView(this.game);
-		this.toolbarView = new ToolbarView();
-		this.paramView = new ParamView();
-		this.tabView = new TabView('property-tabs');
+		this.layerView = new MapManView.LayerView();
+		this.assetView = new MapManView.AssetView(document.getElementById('freewall'), this.fileAccess);
+		this.propertyView = new MapManView.PropertyView(this.game);
+		this.toolbarView = new MapManView.ToolbarView();
+		this.paramView = new MapManView.ParamView();
+		this.tabView = new MapManView.TabView('property-tabs');
 
 		//Event Links
 		this.addForms();
@@ -86,7 +89,7 @@ var EventLink = {
 	addForms(){
 
 		//Object info in Object tab
-		this.objectForm = new FormView([{
+		this.objectForm = new MapManView.FormView([{
 											name: 'name',
 											id: 'object-name',
 											refresh: (wrapper) => { return wrapper.name; },
@@ -120,7 +123,7 @@ var EventLink = {
 									]);
 
 
-		this.preferenceForm = new FormView([{
+		this.preferenceForm = new MapManView.FormView([{
 												name: 'backgroundColor',
 												id: 'editor-color-pref',
 											},
@@ -141,7 +144,6 @@ var EventLink = {
 												id: 'frame-height-pref',
 											}
 										]);
-
 
 	},
 
@@ -408,7 +410,10 @@ var EventLink = {
 					this.layerView.addObject(newObj);
 
 					MapMan.Stages.active.add(newObj);
+
+					//Restack layers
 					MapMan.Stages.setLayerOrder(this.layerView.getLayerOrder().reverse(), true); //Refresh the layer order
+					MapMan.Tools.UILayers.restackTop(); //Restacks elements that should be above the game objects
 
 				});
 
@@ -432,6 +437,22 @@ var EventLink = {
 
 	addToolbarEvents: function(){
 
+		this.toolbarView.btn('returnToOrigin', 'btn-origin');
+		this.toolbarView.toggleBtn('grid', 'btn-grid');
+		this.toolbarView.toggleBtn('frame', 'btn-frame');
+		this.toolbarView.radioGroup('selectTool', 	[{
+														name: 'Scale', 
+														selector: 'btn-scale'
+													},
+													{
+														name: 'Rotate',
+														selector: 'btn-rotate'
+													}]);
+
+		this.toolbarView.events.on('selectToolToggled', (tool, active) => {
+			MapMan.Tools.Select.setActiveTool(MapMan.Tools.Select[tool]);
+		});
+
 		/* 
 		 * EVENT: Grid tool button is pressed
 		 * RESPONSE: Draw or undraw grid and make objects snap to gridlines
@@ -441,21 +462,28 @@ var EventLink = {
 		}.bind(this));
 
 		/* 
+		 * EVENT: Frame tool button is pressed
+		 * RESPONSE: Draw or undraw game frame
+		 */
+		this.toolbarView.events.on('frameToggled', function(){
+			MapMan.Tools.Frames.toggleFrames();
+		}.bind(this));
+
+
+		/* 
 		 * EVENT: Return-to-origin button is clicked
 		 * RESPONSE: Move the camera back to the origin
 		 */
-		this.toolbarView.events.on('goToOrigin', function(){
+		this.toolbarView.events.on('returnToOriginClicked', function(){
 			MapMan.Tools.Zoom.resetZoom();
 			this.game.camera.setPosition(0,0);
 		}.bind(this));
 
-		/* 
-		 * EVENT: Scale Tool button is pressed
-		 * RESPONSE: Activate the scale tool
-		 */
+		/*
 		this.toolbarView.events.on('scaleToggled', function(){
 			MapMan.Tools.Select.setActiveTool(MapMan.Tools.Select.Scale);
 		}.bind(this));
+		*/
 
 	},
 
@@ -620,6 +648,7 @@ var EventLink = {
 			}
 
 			MapMan.Tools.Select.unselect();
+			this.game.debug.reset();
 
 		}.bind(this));
 

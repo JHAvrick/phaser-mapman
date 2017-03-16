@@ -1,5 +1,5 @@
-const EventManager = require('./src/lib/event-manager.js');
-const FileAccess = require('./src/lib/file-access.js');
+const EventManager = require('../lib/event-manager.js');
+const FileAccess = require('../lib/file-access.js');
 const Freewall = require('freewall').Freewall;
 
 class AssetView {
@@ -425,3 +425,5 @@ class AssetView {
 	}
 
 }
+
+module.exports = AssetView;

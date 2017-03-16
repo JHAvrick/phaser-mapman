@@ -33,7 +33,8 @@ BUGS:
 
 LEFT TO DO:
 	
-	- Rotate Tool
+	[x] Rotate Tool
+	[ ] Create 'Frame' tool
 	- Correct position on zoom in / out
 	- Load sprite atlas via drag and drop
 	- Load stage via drag and drop
@@ -43,7 +44,6 @@ LEFT TO DO:
 	- Duplicate layers?
 	- Create new defintion
 	- Drag object jsons directly onto the stage
-	- Create 'Frame' tool
 	- Compile final project 
 	- Rename layers
 	- Bring object to top

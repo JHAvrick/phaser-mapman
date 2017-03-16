@@ -19,8 +19,8 @@
 
 	<!-- SRC -->
 	<script type="text/javascript" src='src/CallbackManager.js'></script>
-	<script type="text/javascript" src='src/view/AssetView.js'></script>
-	<script type="text/javascript" src='src/view/ToolbarView.js'></script>
+	<!--<script type="text/javascript" src='src/view/AssetView.js'></script>-->
+	<!--<script type="text/javascript" src='src/view/ToolbarView.js'></script>-->
 
 	<script type="text/javascript" src='src/ObjectMaster.js'></script>
 	<script type="text/javascript" src='src/AssetMaster.js'></script>
@@ -45,14 +45,12 @@
 		require('jqpropertygrid');
 		require('spectrum');
 
-		const PropertyView = require('./src/view/PropertyView.js');
-		const LayerView = require('./src/view/LayerView.js');
-		const ParamView = require('./src/view/ParamView.js');
 		const DefinitionMaster = require('./src/DefinitionMaster.js');
-		const TabView = require('./src/view/TabView.js');
-		const AssetPreview = require('./src/view/AssetPreview.js');
-		const FormView = require('./src/view/FormView.js');
+		const EventManager = require('./src/lib/event-manager.js');
+		const FileAccess = require('./src/lib/file-access.js');
 
+		//const MapManUtil = require('./src/MapManUtil.js');
+		const MapManView = require('./src/view/MapManViews.js');
 		const Common = 	{
 							fs: require('fs'),
 							dialog: require('electron').remote.dialog,
@@ -62,17 +60,20 @@
 
 		var remote = require('electron').remote;
 		var path = require('path');
-		//var fs = require('fs');
 		const DIALOG = require('electron').remote.dialog;
 		
 		//On DOM load, do some UI config
 		document.addEventListener("DOMContentLoaded", function(){
-			
+
+			var test = new MapManView.ScreenView('test-sort');
+
 			$(document).tooltip({
 				show: {
-					delay: 500
+					delay: 300
 				}
 			});
+
+			//$( "#test-sort" ).sortable();
 
 			$('#preference-tabs').tabs().addClass('ui-tabs-vertical ui-helper-clearfix');
 
@@ -143,7 +144,6 @@
 
 		});
 
-
 	</script>
 
 </head>
@@ -196,6 +196,9 @@
 					<button id="btn-grid" type="button" class="btn btn-default" title="Toggle Grid">
 						<span class="icon-grid"></span>
 					</button>
+					<button id="btn-frame" type="button" class="btn btn-default" title="Toggle Frame">
+						<span class="icon-frame"></span>
+					</button>
 					---------
 					<button id="btn-scale" type="button" class="btn btn-default" title="Scale Tool">
 						<span class="icon-scale"></span>
@@ -237,7 +240,9 @@
 						<div id="tab-world" class="tab-container">
 							<div id="world-panel" class="panel panel-default">
 								<div id="object-panel-header" class="panel-heading">World</div>
-																	
+								<ul id="test-sort">
+
+								</ul>						
 							</div>
 						</div>
 						<div id="tab-object" class="tab-container">
@@ -271,6 +276,7 @@
 											<div id="object-param-panel">
 												<div class="mapman-header">Parameters</div>
 												<ul id="object-param-list">
+													
 												</ul>
 											</div>
 										</td>
@@ -293,7 +299,6 @@
 
 					</div>
 				</div>
- 
 		</div>
 
 		<div id="assetview" class="panel panel-default">

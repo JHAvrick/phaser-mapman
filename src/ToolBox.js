@@ -2,45 +2,123 @@ class ToolBox {
 	constructor(stage){
 		this.stage = this.game = stage;
 		this.stage.plugins.add(this);
+		this.hasPreUpdate = true;
+		this.hasPostUpdate = true;
 
-		this.Select = new Selector(stage); //Always on
-		this.Nav = new Navigator(stage);	//Always on
+		//Active tools only receive input events when they are active
+		this.Select = new Selector(stage);
+		this.Nav = new Navigator(stage);
 		this.Zoom = new Zoom(stage);
-		this.Grid = new Grid(stage);	//Reactive
-		//this.Scale = new Scaler(stage);	
+		this.Grid = new Grid(stage);
+		this.Frames = new ScreenFrames(stage);
+		this.UILayers = new EditorLayers(stage);
+		this.addLayers();
 
-		this.passiveTools = [this.Select, this.Nav];
-		//this.activeTool = this.Scale;
+		//Passive tools are constantly updated 
+		this.passiveTools = [this.Select, this.Nav]; 
 
 		this.stage.input.onDown.add(this.startTool, this);
 		this.stage.input.onUp.add(this.endTool, this);
+	}
+
+	addLayers(){
+
+		this.UILayers.toTop(() => {
+			this.Frames.bringToTop();
+		});
+
 	}
 
 	startTool(pointer){
 		for (var i = 0; i < this.passiveTools.length; i++){
 			this.passiveTools[i].start(pointer);
 		}
-
-		//this.activeTool.start(pointer);
 	}
 
 	endTool(pointer){
 		for (var i = 0; i < this.passiveTools.length; i++){
 			this.passiveTools[i].end(pointer);
 		}
+	}
 
-		//this.activeTool.end(pointer);
+	preUpdate(){
+		for (var i = 0; i < this.passiveTools.length; i++){
+			if (this.passiveTools[i].preUpdate){
+				this.passiveTools[i].preUpdate();
+			}
+		}
 	}
 
 	update(){
 		for (var i = 0; i < this.passiveTools.length; i++){
 			this.passiveTools[i].update();
 		}
-
-		//this.Select.activeSubTool.update();
 	}
 
+	postUpdate(){
+		for (var i = 0; i < this.passiveTools.length; i++){
+			if (this.passiveTools[i].postUpdate){
+				this.passiveTools[i].postUpdate();
+			}
+		}
+	}
 
+}
+
+class EditorLayers {
+	constructor(game){
+		this.game = game;
+
+		this.bottom = []; //Always on the bottom
+		this.layers = []; //Brought to top based on the order in which each layer was added
+		this.top = []; //Always brought to top last
+
+	}
+
+	//Restacks all layers
+	restackBottom(){
+		this.bottom.forEach((bringToTop) => {
+			bringToTop();
+		});
+
+		this.layers.forEach((bringToTop) => {
+			bringToTop();
+		});
+
+		this.top.forEach((bringToTop) => {
+			bringToTop();
+		})
+	}
+
+	//Restacks from middle up
+	restackLayers(){
+		this.layers.forEach((bringToTop) => {
+			bringToTop();
+		});
+
+		this.top.forEach((bringToTop) => {
+			bringToTop();
+		});
+	}
+
+	//Restacks only the top layer
+	restackTop(){
+		this.top.forEach((bringToTop) => {
+			bringToTop();
+		});
+	}
+
+	toBottom(bringToTop){
+		this.bottom.push(bringToTop);
+	}
+
+	toTop(bringToTop){
+		this.top.push(bringToTop);
+	}
+
+	addLayer(position){
+		this.layers.push(bringToTop);
+	}
 }
 
 class Selector {
@@ -65,25 +143,32 @@ class Selector {
 		this.selectBox.alpha = .5;
 
 		this.Scale = new Scaler(this.stage);
-		this.subTools = [this.Scale];
+		this.Rotate = new Rotator(this.stage);
+		this.subTools = [this.Scale, this.Rotate];
 		this.activeSubTool = undefined;
 
 	}
 
 	setActiveTool(tool){
+		//Deactivate the active tool if it is toggled off and don't activate any other tool
 		if (this.activeSubTool === tool){
 
 			this.activeSubTool.end();
 			this.activeSubTool = undefined;
 
+		//If the given tool is different than the active tool, switch tools
 		} else {
+
+			if (this.activeSubTool) { 
+				this.activeSubTool.end(); 
+			}
 
 			this.activeSubTool = tool;
 
 			if (this.selection){
 				this.activeSubTool.start(this.selection);
 			}
-			
+
 		}
 	}
 
@@ -221,6 +306,22 @@ class Selector {
 		}
 	}
 
+	postUpdate(){
+		if (this.selection && this.activeSubTool){
+			if (this.activeSubTool.postUpdate){
+				this.activeSubTool.postUpdate();
+			}
+		}
+	}
+
+	preUpdate(){
+		if (this.selection && this.activeSubTool){
+			if (this.activeSubTool.preUpdate){
+				this.activeSubTool.preUpdate();
+			}
+		}
+	}
+
 	end(){
 		if (this.triggerEditOnRelease){
 			this.events.trigger('selectionEdited', this.selection);
@@ -243,7 +344,7 @@ class Selector {
 
 }
 
-class Handle extends Phaser.Sprite {
+class ScaleHandle extends Phaser.Sprite {
 	constructor(game, texture, position){
 		super(game, 0, 0, texture);
 
@@ -361,7 +462,6 @@ class Handle extends Phaser.Sprite {
 	topLeftScale(){
 		this.target.width = this.targetStartWidth - this.dragDifferenceX;
 		this.target.height = this.targetStartHeight - this.dragDifferenceY;
-
 	}
 
 	bottomLeftScale(){
@@ -381,23 +481,23 @@ class Handle extends Phaser.Sprite {
 
 
 	topLeft(){
-		this.x = this.target.x - this.target.offsetX;
-		this.y = this.target.y - this.target.offsetY;
+		this.x = this.target.boundsLeft;
+		this.y = this.target.boundsTop;
 	}
 
 	bottomLeft(){
-		this.x = this.target.x - this.target.offsetX;
-		this.y = (this.target.y + this.target.height) - this.target.offsetY;
+		this.x = this.target.boundsLeft;
+		this.y = this.target.boundsBottom;
 	}
 
 	topRight(){
-		this.x = (this.target.x + this.target.width) - this.target.offsetX;
-		this.y = this.target.y - this.target.offsetY;
+		this.x = this.target.boundsRight;
+		this.y = this.target.boundsTop;
 	}
 
 	bottomRight(){
-		this.x = (this.target.x + this.target.width) - this.target.offsetX;
-		this.y = (this.target.y + this.target.height) - this.target.offsetY;
+		this.x = this.target.boundsRight;
+		this.y = this.target.boundsBottom;
 	}
 
 }
@@ -417,10 +517,10 @@ class Scaler {
 			graphics.visible = false;
 		var handleTexture = graphics.generateTexture();
 
-		this.leftTop = new Handle(this.stage, handleTexture, 'topLeft');
-		this.leftBottom = new Handle(this.stage, handleTexture, 'bottomLeft');
-		this.rightTop = new Handle(this.stage, handleTexture, 'topRight');
-		this.rightBottom = new Handle(this.stage, handleTexture, 'bottomRight');
+		this.leftTop = new ScaleHandle(this.stage, handleTexture, 'topLeft');
+		this.leftBottom = new ScaleHandle(this.stage, handleTexture, 'bottomLeft');
+		this.rightTop = new ScaleHandle(this.stage, handleTexture, 'topRight');
+		this.rightBottom = new ScaleHandle(this.stage, handleTexture, 'bottomRight');
 		this.handles = [this.leftTop, this.leftBottom, this.rightTop, this.rightBottom];
 	}
 
@@ -460,6 +560,109 @@ class Scaler {
 		this.handles.forEach((handle) => {
 			handle.updateTarget();
 		});
+	}
+
+}
+
+class RotateHandle extends Phaser.Sprite {
+	constructor(game, texture){
+		super(game, 0, 0, null);
+
+		this.game = game;
+		this.target = undefined;
+		this.following = false;
+
+		this.targetStartX = 0;
+		this.targetStartY = 0;
+		this.targetStartAngle = 0;
+		this.mouseStartAngle = 0;
+		//this.angleDifference = 0;
+
+		this.visible = false;
+		this.anchor.setTo(.5,.5);
+		this.inputEnabled = true;
+
+		this.events.onInputDown.add(this.rotateStart, this);
+		this.events.onInputUp.add(this.rotateEnd, this);
+
+		this.game.add.existing(this);
+	}
+
+	rotateStart(){
+		this.targetStartAngle = this.target.angle;
+		this.mouseStartAngle = Phaser.Math.angleBetween(this.game.input.mousePointer.x, this.game.input.mousePointer.y, this.target.x, this.target.y);
+
+		this.rotating = true;
+	}
+
+	rotateEnd(){
+		this.rotating = false;
+	}
+
+
+	update(){
+		if (this.target){
+			this.x = this.target.x;
+			this.y = this.target.y;
+		}
+
+		if (this.rotating){
+
+			let mouseAngle = Phaser.Math.angleBetween(this.game.input.mousePointer.x, this.game.input.mousePointer.y, this.target.x, this.target.y);
+			let angleDifference = Phaser.Math.radToDeg(mouseAngle - this.mouseStartAngle);
+
+			this.target.angle = Math.floor(this.targetStartAngle + angleDifference);
+
+		}
+	}
+
+	redraw(target){
+		var diameter = Math.sqrt(Math.pow(target.width, 2) + Math.pow(target.height, 2));
+
+		var graphics = this.game.add.graphics(0, 0);
+			graphics.lineStyle(2, 0x00ff00, 1);
+			graphics.drawCircle(0, 0, diameter);
+			graphics.lineStyle(2, 0x0000ff, 1);
+			graphics.drawCircle(0, 0, 5);
+			graphics.visible = false;
+
+		this.loadTexture(graphics.generateTexture());
+		this.bringToTop();
+
+	}
+
+	setTarget(target){
+		this.target = target;
+		this.redraw(target);
+		this.visible = true;
+		this.following = true;
+	}
+
+	unsetTarget(){
+		this.target = undefined;
+		this.following = false;
+		this.visible = false;
+	}
+
+}
+
+class Rotator {
+	constructor(game){
+		this.game = game;
+
+		this.rotateHandle = new RotateHandle(this.game);
+	}
+
+	start(wrapper){
+		this.rotateHandle.setTarget(wrapper.display);
+	}
+
+	end(){
+		this.rotateHandle.unsetTarget();
+	}
+
+	update(){
+
 	}
 
 }
@@ -755,5 +958,96 @@ class Grid {
 		}
 
 	}
+
+}
+
+class ScreenFrames {
+	constructor(game){
+		this.game = game;
+
+		this.framesOn = false;
+		this.frames = [];
+		this.addFrame(450, 800, 0x551a8b);
+
+	}
+
+	addFrame(width, height, color){
+		var color = color ? color : 0x551a8b;
+
+		this.frames.push({ width: width, height: height, color: color, sprite: undefined, label: undefined });
+	}
+
+	toggleFrames(){
+
+		if (this.framesOn){
+
+			this.framesOn = false;
+			this.hideFrames();
+
+		} else {
+
+			this.framesOn = true;
+			this.drawFrames();
+			this.showFrames();
+
+		}
+	}
+
+	drawFrames(){
+		this.frames.forEach((frame) => {
+			if (!frame.sprite){
+
+				var g = this.game.add.graphics(0, 0);
+					g.lineStyle(3, frame.color, 1);
+					g.drawRect(0, 0, frame.width, frame.height);
+					g.visible = false;
+
+					frame.sprite = this.game.add.sprite(0, 0, g.generateTexture());
+					frame.sprite.visible = false;
+
+					frame.label = this.game.add.text(frame.width + 5, 0, 'W:' + frame.width + ' H:' + frame.height, { font: "12px Arial", fill:  '#fff' });
+					frame.label.visible = false;
+					frame.label.tint = frame.color;
+			}
+		});
+	}
+
+	hideFrames(){
+		this.frames.forEach((frame) => {
+			if (frame.sprite){
+				frame.sprite.visible = false;
+				frame.label.visible = false;
+			}
+		});
+	}
+
+	showFrames(){
+		this.frames.forEach((frame) => {
+			if (frame.sprite){
+				frame.sprite.visible = true;
+				frame.label.visible = true;
+			}
+		});
+	}
+
+	destroyFrames(){
+		this.frames.forEach((frame) => {
+			if (frame.sprite){
+				frame.sprite.destroy();
+				frame.label.destroy();
+				frame.sprite = undefined;
+				frame.label = undefined;
+			}
+		});
+	}
+
+	bringToTop(){
+		this.frames.forEach((frame) => {
+			if (frame.sprite){
+				frame.sprite.bringToTop();
+			}
+		});	
+	}
+
 
 }

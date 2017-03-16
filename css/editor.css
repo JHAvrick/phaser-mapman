@@ -481,6 +481,10 @@ body {
 
 /*------------- MISC ------------------ */
 
+ul {
+	list-style-type: none;
+}
+
 .ui-draggable-helper {
 
 	pointer-events: none !important;
@@ -587,6 +591,15 @@ body {
 
 .icon-link {
 	background-image: url('../resources/icon/icon-link.png');
+	background-repeat: no-repeat;
+	padding-left: 20px;
+	padding-bottom: 15px;
+	padding-top: 3px;
+	display: inline; 
+}
+
+.icon-frame {
+	background-image: url('../resources/icon/icon-frame.png');
 	background-repeat: no-repeat;
 	padding-left: 20px;
 	padding-bottom: 15px;

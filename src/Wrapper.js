@@ -7,7 +7,7 @@ class Wrapper {
 		this.key = key;
 		this.name = "object-" + this.id;
 		this.display = displayObject; //The actual display object we care about (i.e. Sprite, Image, etc.)
-		this.stage = stage; //Game reference
+		this.stage = this.game = stage; //Game reference
 
 		//Flags
 		this.deleted = false;
@@ -21,27 +21,29 @@ class Wrapper {
 		//Front-load any params/properties already set in the object definition
 		this.trackedProperties = {};
 		this.trackedParameters = {};
-
 		this.trackProperties(this.definition.properties); //Properties should be tracked first as params may depend on their values
 		this.trackParameters(this.definition.parameters);
-		
-
+	
 		//The 'Select Box' shown around the display object when it is selected, position set in the update loop
 		this.bounds = this.stage.add.graphics(0, 0);
 		this.bounds.beginFill(0x00ff00, .2);
 		this.bounds.drawRect(0, 0, this.display.getBounds().width, this.display.getBounds().height);
 		this.bounds.visible = false;
 		
+		//Object name label
+		this.label = this.stage.add.text(this.bounds.x + 5, this.bounds.y + 5, this.name, { font: "12px Arial", fill: "#fff" });
+		this.label.visible = false;
+
 		//Some config on the display object that we are wrapping
 		this.display.wrapper = this;
 		this.display.inputEnabled = true;
+		this.display.ignoreChildInput = false;
 		this.display.input.enableDrag();
 		this.display.input.pixelPerfectOver = true;
 		this.display.input.pixelPerfectAlpha = 50;
+		this.display.selectBox = this.bounds;
+		this.displayBounds = this.display.getBounds();
 		this.display.update = this.update.bind(this);
-
-		this.label = this.stage.add.text(this.bounds.x + 5, this.bounds.y + 5, this.name, { font: "12px Arial", fill: "#fff" });
-		this.bounds.addChild(this.label);
 
 		//Events to record 'Object Moved' operation
 		this.display.events.onDragStart.add(this.setLastPosition, this);
@@ -50,10 +52,27 @@ class Wrapper {
 
 	update(){
 		if (this.isSelected){
-			this.bounds.x = (this.display.x - this.display.offsetX);
-			this.bounds.y = (this.display.y - this.display.offsetY);
-			this.bounds.width = this.display.width;
-			this.bounds.height = this.display.height;
+
+			//bounds do not take into account camera position for some reason, hence the below code
+			let bounds = this.display.getBounds();
+
+			this.display.boundsX = bounds.x + this.game.camera.x;
+			this.display.boundsY = bounds.y + this.game.camera.y;
+			this.display.boundsLeft = bounds.left + this.game.camera.x;
+			this.display.boundsRight = bounds.right + this.game.camera.x;
+			this.display.boundsTop = bounds.top + this.game.camera.y;
+			this.display.boundsBottom = bounds.bottom + this.game.camera.y;
+			this.display.boundsCenterX = bounds.centerX + this.game.camera.x;
+			this.display.boundsCenterY = bounds.centerY + this.game.camera.y;
+
+			this.bounds.x = this.display.boundsX;
+			this.bounds.y = this.display.boundsY;
+			this.bounds.width = bounds.width;
+			this.bounds.height = bounds.height;
+
+			this.label.x = this.display.boundsX + 5;
+			this.label.y = this.display.boundsY + 5;
+			
 		}
 	}
 
@@ -292,35 +311,50 @@ class Wrapper {
 
 	activate(){
 		if (!this.deleted){
+
 			this.display.revive();
 			this.bounds.revive();
+			this.label.revive();
 
 			if (!this.selected){
+
 				this.bounds.visible = false;
+				this.label.visible = false;
+
 			}
 		}
 	}
 
 	deactivate(){
 		if (!this.deleted){
+
 			this.display.kill();
 			this.bounds.kill();
+			this.label.kill();
+
 		}
 	}
 
 	delete(){
+
 		this.unselect();
 		this.deleted = true;
 		this.display.kill();
 		this.bounds.kill();
+		this.label.kill();
+
 		return this;
 	}
 
 	undelete(){
+
 		this.deleted = false;
 		this.display.revive();
 		this.bounds.revive();
+		this.label.revive();
 		this.bounds.visible = false;
+		this.label.visible = false;
+
 		return this;	
 	}
 
@@ -328,11 +362,13 @@ class Wrapper {
 		this.stage.world.bringToTop(this.bounds);
 		this.isSelected = true;
 		this.bounds.visible = true;
+		this.label.visible = true;
 	}
 
 	unselect(){
 		this.isSelected = false;
 		this.bounds.visible = false;
+		this.label.visible = false;
 	}
 
 	resolve(obj, path) {

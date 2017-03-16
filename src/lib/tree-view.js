@@ -1,8 +1,0 @@
-class TreeView {
-	
-	constructor(container){
-	
-	}
-
-
-}
