@@ -1,0 +1,98 @@
+<template id="x-template">
+  <style>
+    li {
+      display: flex;
+      list-style-type: none;
+      width: 100%;
+    }
+    input[type="number"]{
+      display: flex;
+      width: 40%;
+    }
+    input[type="color"]{
+      display: flex;
+      width: 20%;
+    }
+  </style>
+  <li id="item">
+    <input type="number" id="width"></input>
+    <input type="number" id="height"></input>
+    <input type="color" id="color"></input>
+  </li>
+</template>
+
+<template id="x-list">
+  <style>
+    ul {
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      height: 100%
+    }
+  </style>
+  <ul id='list-id'>
+    
+  </ul>
+</template>
+
+<script>
+  customElements.define('x-template', class extends HTMLElement {
+    constructor() {
+      super(); // always call super() first in the ctor.
+     
+      const link = document.querySelector('#x-template-import');
+      const template = link.import.querySelector('#x-template');
+      const instance = template.content.cloneNode(true);
+      let shadowRoot = this.attachShadow({mode: 'open'});
+          shadowRoot.appendChild(instance);
+
+      var editEvent = new Event('onEdit');
+
+      this.widthInput = shadowRoot.getElementById('width');
+      this.heightInput = shadowRoot.getElementById('height');
+      this.colorInput = shadowRoot.getElementById('color');
+
+      this.widthInput.addEventListener('change', e => { this.dispatchEvent(editEvent); });
+      this.heightInput.addEventListener('change', e => { this.dispatchEvent(editEvent); });
+      this.colorInput.addEventListener('change', e => { this.dispatchEvent(editEvent); });
+
+    }
+
+    set state(state){
+
+    }
+
+    get state(){
+      return {  width: this.widthInput.value, 
+                height: this.heightInput.value, 
+                color: this.colorInput.value 
+            }
+    }
+
+  });
+
+  customElements.define('x-list', class extends HTMLElement {
+    constructor() {
+      super(); // always call super() first in the ctor.
+     
+      const link = document.querySelector('#x-template-import');
+      const template = link.import.querySelector('#x-list');
+      const instance = template.content.cloneNode(true);
+      let shadowRoot = this.attachShadow({mode: 'open'});
+          shadowRoot.appendChild(instance);
+
+      var list = shadowRoot.getElementById('list-id');
+
+      var item = document.createElement('x-template')
+          list.appendChild(item);
+
+          item.addEventListener('onEdit', e => {
+
+              console.log(item.state);
+              
+          });
+
+          
+    }
+  });
+</script>

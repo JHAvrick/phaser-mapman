@@ -13,6 +13,8 @@
 	<link href="lib/jquery-ui-1.12.1.custom/jquery-ui.min.css" rel="stylesheet"/>
 	<link href="css/jqPropertyGrid.css" rel="stylesheet"/>
 
+	<link rel="import" href="test-component.html" id="x-template-import">
+
 	<!-- LIB -->
 	<script type="text/javascript" src='lib/phaser.js'r></script>
 	<script type="text/javascript" src='lib/jquery-ui-1.12.1.custom/jquery-ui.min.js' defer></script>
@@ -40,10 +42,9 @@
 		window.MouseTrap = require('mousetrap');
 		window._ = require('underscore');
 
+		//const xtag = require('x-tag');
 		require('bootstrap');
 		require('jstree');
-		require('jqpropertygrid');
-		require('spectrum');
 
 		const DefinitionMaster = require('./src/DefinitionMaster.js');
 		const EventManager = require('./src/lib/event-manager.js');
@@ -65,7 +66,7 @@
 		//On DOM load, do some UI config
 		document.addEventListener("DOMContentLoaded", function(){
 
-			var test = new MapManView.ScreenView('test-sort');
+			var test = new MapManView.ScreenView('screenview-list');
 
 			$(document).tooltip({
 				show: {
@@ -142,7 +143,33 @@
 			  e.preventDefault();
 			},false);
 
+
+			console.log(document.getElementById('custcomp'));
+
 		});
+
+		/*
+		class CustomElement extends HTMLElement {
+			constructor(){
+				super();
+				var shadow = this.attachShadow({mode: 'open'});
+
+				var widthInput = document.createElement('input');
+					widthInput.type = 'number';
+				var heightInput = document.createElement('input');
+					heightInput.type = 'number';
+				var colorInput = document.createElement('input');
+					colorInput.type = 'color';
+
+				shadow.appendChild(widthInput);
+				shadow.appendChild(heightInput);
+				shadow.appendChild(colorInput);
+
+			}
+		}
+
+		customElements.define('custom-element', CustomElement);
+		*/
 
 	</script>
 
@@ -150,7 +177,8 @@
 
 <body style="margin:0; padding:0">
 
-		<div id="menu-bar">
+		<div id="menu-bar">	
+
 			<div id="menu-options" class="btn-group" role="group" aria-label="...">
 
 					<div class="dropdown" style="float:left;">
@@ -208,8 +236,6 @@
 					</button>
 				</div>
 			</div>		
-
-
 		</div>
 
 		<div id="canvas-wrap">
@@ -220,8 +246,6 @@
 		<div id="property-menu-wrapper" class="panel panel-default">
 			 	<div id="layer-container">
 			 		<div id="layer-tree">
-			 			
-
 			 		</div>
 			 		<div id="layer-toolbar">
 			 			<button id="btn-add-layer"></button>
@@ -239,10 +263,16 @@
 
 						<div id="tab-world" class="tab-container">
 							<div id="world-panel" class="panel panel-default">
-								<div id="object-panel-header" class="panel-heading">World</div>
-								<ul id="test-sort">
-
-								</ul>						
+								<div id="scene-panel-header" class="panel-heading">World</div>
+								<ul id="screenview-list"></ul>
+								<x-list>
+									<x-template></x-template>
+									<x-template></x-template>
+									<x-template></x-template>
+									<x-template></x-template>
+									<x-template></x-template>					
+								</x-list>
+												
 							</div>
 						</div>
 						<div id="tab-object" class="tab-container">
