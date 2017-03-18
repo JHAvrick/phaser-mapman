@@ -1,11 +1,11 @@
 class Wrapper {
 
-	constructor(definition, id, key, stage, displayObject){
+	constructor(definition, idIndex, stage, displayObject){
 
 		this.definition = definition; //Holds meta information about properties and how they should be applied
-		this.id = id;	//Used internally to keep track of objects independant of their user-designated keys
-		this.key = key;
-		this.name = "object-" + this.id;
+		this.id = 'id-' + idIndex;	//Used internally to keep track of objects independant of their user-designated keys
+		//this.key = key;
+		this.name = this.definition.name + '-' + idIndex;
 		this.display = displayObject; //The actual display object we care about (i.e. Sprite, Image, etc.)
 		this.stage = this.game = stage; //Game reference
 
@@ -70,8 +70,8 @@ class Wrapper {
 			this.bounds.width = bounds.width;
 			this.bounds.height = bounds.height;
 
-			this.label.x = this.display.boundsX + 5;
-			this.label.y = this.display.boundsY + 5;
+			this.label.x = this.display.boundsX;
+			this.label.y = this.display.boundsY - 15;
 			
 		}
 	}

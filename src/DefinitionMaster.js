@@ -30,7 +30,13 @@ class DefinitionMaster {
 		return this.activeDefinition;
 	}
 
-
+	getNames(){
+		var names = []; //Just the keys
+		for (var name in this.definitions){
+			names.push(name);
+		}
+		return names;
+	}
 }
 
 module.exports = DefinitionMaster;

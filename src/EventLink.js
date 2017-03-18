@@ -56,7 +56,7 @@ var EventLink = {
 
 		//UI Components
 		this.layerView = new MapManView.LayerView();
-		this.assetView = new MapManView.AssetView(document.getElementById('freewall'), this.fileAccess);
+		this.assetView = new MapManView.AssetView(document.getElementById('freewall'));
 		this.propertyView = new MapManView.PropertyView(this.game);
 		this.toolbarView = new MapManView.ToolbarView();
 		this.paramView = new MapManView.ParamView();
@@ -117,7 +117,8 @@ var EventLink = {
 											id: 'texture-preview',
 											assign: 'style.backgroundImage',
 											refresh: (wrapper) => { 
-												return 'url("' + MapMan.Assets.getImagePath(wrapper.display.key) +'")';
+												//return 'url("' + MapMan.Assets.getImagePath(wrapper.display.key) +'")';
+												return wrapper.imagePath ? 'url("' + wrapper.imagePath +'")' : "url()"; 
 											}
 										}
 									]);
@@ -394,28 +395,69 @@ var EventLink = {
 		 * EVENT: Image dropped onto canvas from AssetView
 		 * RESPONSE: Image is loaded if not already in cache, new Wrapper object is created
 		 */
-		this.assetView.events.on('assetDropped', (position, data) => {
+		this.assetView.events.on('assetDropped', (data) => {
 
 			if (data){
 
-				MapMan.Assets.load(data.path, (imageKey) => {
+				if (data.ext === '.json'){
 
-					var newObj = MapMan.ObjectFactory.create( MapMan.Definitions.getActive(), imageKey );
-								 MapMan.ObjectPool.add(newObj);
-								
-					var x = this.game.input.mousePointer.worldX;
-					var y = this.game.input.mousePointer.worldY;
+					this.projectManager.loadJSON(data.path).then( json => {
+						switch (json.MapManType){
+							case 'definition':
 
-					this.stageManager.addToStage(x, y, newObj);
-					this.layerView.addObject(newObj);
+							console.log(json);
 
-					MapMan.Stages.active.add(newObj);
+								var newObj = MapMan.ObjectFactory.create( json, 'mapman-default' );
+											 MapMan.ObjectPool.add(newObj);
 
-					//Restack layers
-					MapMan.Stages.setLayerOrder(this.layerView.getLayerOrder().reverse(), true); //Refresh the layer order
-					MapMan.Tools.UILayers.restackTop(); //Restacks elements that should be above the game objects
+									newObj.imagePath = 'resources/images/mapman-default.png'; 
+										
+								var x = this.game.input.mousePointer.worldX;
+								var y = this.game.input.mousePointer.worldY;
 
-				});
+								this.stageManager.addToStage(x, y, newObj); //Add the object to the stage
+								this.layerView.addObject(newObj); //Add the object to the layer view
+								MapMan.Stages.active.add(newObj); //Add the new object to the active scene pool
+
+								MapMan.Stages.setLayerOrder(this.layerView.getLayerOrder().reverse(), true); //Refresh the layer order
+								MapMan.Tools.UILayers.restackTop(); //Restacks elements that should be above the game objects
+
+								break;
+							case 'prefab':
+
+								break;
+
+							case 'scene':
+
+								break;
+							//TO DO: Account for sprite atlas json
+						}
+					});
+
+				} else {
+
+					//If the asset dropped was not a json, it was probably an image file
+					//Create new object of whatever type is currently active (default is sprite) with this image as its texture
+					MapMan.Assets.load(data.path, (imageKey) => {
+
+						var newObj = MapMan.ObjectFactory.create( MapMan.Definitions.getActive(), imageKey );
+									 MapMan.ObjectPool.add(newObj);
+
+							newObj.imagePath = data.path;
+									
+						var x = this.game.input.mousePointer.worldX;
+						var y = this.game.input.mousePointer.worldY;
+
+						this.stageManager.addToStage(x, y, newObj); //Add the object to the stage
+						this.layerView.addObject(newObj); //Add the object to the layer view
+						MapMan.Stages.active.add(newObj); //Add the new object to the active scene pool
+
+						MapMan.Stages.setLayerOrder(this.layerView.getLayerOrder().reverse(), true); //Refresh the layer order
+						MapMan.Tools.UILayers.restackTop(); //Restacks elements that should be above the game objects
+
+					});
+
+				}
 
 			}
 

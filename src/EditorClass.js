@@ -63,7 +63,7 @@ class StageManager {
 
 }
 
-
+//The project manager controls the reading and writing of project assets
 class ProjectManager {
 
 	constructor(game){
@@ -148,14 +148,10 @@ class ProjectManager {
 			this.fileAccess.loadAllJSON(rootDir + Common.path.sep + 'object').then((data) => {
 				MapMan.Definitions.addAll(data);
 				MapMan.Definitions.setActive('Sprite');
-				console.log(MapMan.Definitions.getActive());
 			});
 
 
-			console.log("Load: " + rootDir);
-
-			//TO DO: Load object files
-
+			//TO DO: Load prefabs
 
 		}).catch((err) => {
 
@@ -163,6 +159,10 @@ class ProjectManager {
 
 		});
 
+	}
+
+	loadJSON(path){
+		return this.fileAccess.loadJSON(path);
 	}
 
 

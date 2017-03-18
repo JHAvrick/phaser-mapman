@@ -1,41 +1,62 @@
 <template id="x-template">
   <style>
+    @keyframes example {
+        from {width: 50px;}
+        to { width: 100px;}
+    }
+
     li {
       display: flex;
       list-style-type: none;
       width: 100%;
     }
+
+    li:hover button {
+      display: flex;
+    }
+    li:hover input[type="number"] {
+      width: 35%;
+    }
+    li:hover input[type="color"] {
+      display: flex;
+      width: calc(30% - 35px);
+    }
+
     input[type="number"]{
       display: flex;
-      width: 40%;
+      width: 35%;
     }
     input[type="color"]{
       display: flex;
-      width: 20%;
+      width: 30%;
     }
+    button {
+
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-image: url("resources/icon/icon-trash.png");
+      padding: 0;
+      margin: 0;
+      border: 0;
+      width: 35px;
+      border: 1px solid gray;
+
+      display: none;
+    }
+
   </style>
   <li id="item">
     <input type="number" id="width"></input>
     <input type="number" id="height"></input>
     <input type="color" id="color"></input>
+    <button id="btn-remove"></button>
   </li>
 </template>
 
-<template id="x-list">
-  <style>
-    ul {
-      padding: 0;
-      margin: 0;
-      width: 100%;
-      height: 100%
-    }
-  </style>
-  <ul id='list-id'>
-    
-  </ul>
-</template>
-
 <script>
+
+  //Custom list item element
+
   customElements.define('x-template', class extends HTMLElement {
     constructor() {
       super(); // always call super() first in the ctor.
@@ -66,10 +87,87 @@
       return {  width: this.widthInput.value, 
                 height: this.heightInput.value, 
                 color: this.colorInput.value 
-            }
+             }
     }
 
   });
+
+</script>
+
+<template id="x-list">
+  <style>
+    ul {
+      border: 1px solid lightgray;
+      padding: 0;
+      margin-left: 10px;
+      margin-right: 10px;
+      width: calc(100% - 20px);
+      height: 250px;
+    }
+
+    #header {
+      width: calc(100% - 5px);
+      height: 30px;
+      vertical-align: middle;
+      text-align: left;
+      padding-left: 5px;
+      border: 1px solid lightgray;
+    }
+
+    #column-header {
+      width:  100%;
+      height: 25px;
+      vertical-align: middle;
+      text-align: center;
+      float: left;
+      border: 1px solid lightgray;
+    }
+
+    #width-label {
+      float: left;
+      width: 40%;
+      height: 100%;
+      text-align: center;
+    }
+
+    #height-label {
+      float: left;
+      width: 40%;
+      text-align: center;
+    }
+
+    #color-label {
+      float: left;
+      width: 20%;
+      text-align: center;
+    }
+
+    button{
+      background-repeat: no-repeat;
+      background-position: center center;
+      background-color: transparent;
+      background-image: url("resources/icon/icon-add.png");
+      float: right;
+      padding: 0;
+      margin: 0;
+      border: 0;
+      width: 30px;
+      height: 30px;
+    }
+
+  </style>
+  <ul id='list-id'>
+    <div id="header">Screen Frames<button id="btn-add-item"></button></div>
+    <div id="column-header">
+      <div id="width-label">Width</div>
+      <div id="width-label">Height</div>
+      <div id="color-label">Color</div>
+    </div>
+  </ul>
+</template>
+<script>
+
+//The container for the screen list items
 
   customElements.define('x-list', class extends HTMLElement {
     constructor() {
@@ -83,16 +181,22 @@
 
       var list = shadowRoot.getElementById('list-id');
 
-      var item = document.createElement('x-template')
+      var item = document.createElement('x-template');
           list.appendChild(item);
+          list.appendChild(document.createElement('x-template'));
+          list.appendChild(document.createElement('x-template'));
+          list.appendChild(document.createElement('x-template'));
+          list.appendChild(document.createElement('x-template'));
+
 
           item.addEventListener('onEdit', e => {
 
-              console.log(item.state);
               
-          });
+              
 
-          
+          }); 
+
+          console.log(this.shadowRoot);
     }
   });
 </script>

@@ -33,23 +33,25 @@ BUGS:
 
 LEFT TO DO:
 	
-	[x] Rotate Tool
-	[ ] Create 'Frame' tool
-	- Correct position on zoom in / out
-	- Load sprite atlas via drag and drop
+	- Create object defintions for Image, Button, Tilesprite..
+	- Create and save prefabs from existing objects
+	- Create and save new defintion
 	- Load stage via drag and drop
-	- Create object defintions for Image, Button, Tilesprite...
-	- Create prefabs from existing objects
+	- Load sprite atlas via drag and drop
 	- Duplicate objects
 	- Duplicate layers?
-	- Create new defintion
-	- Drag object jsons directly onto the stage
-	- Compile final project 
 	- Rename layers
 	- Bring object to top
+
+	[x] Rotate Tool
+	[ ] Create 'Frame' tool
+	[ ] Correct position on zoom in / out
+	[ ]	UI Improvements
+	
+
 	- Keyboard shortcuts
 	- Menu option callbacks
+	- Compile final project 
 	- MapMan Phaser Plugin
-	- UI Improvements
 
 	

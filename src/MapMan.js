@@ -8,8 +8,9 @@ var EditorSetup = {
 
 	preload: function(){
 
-		this.game.load.image('handle-drag','resources/handles/handle-drag.png');
-		this.game.load.image('origin','resources/handles/origin.png');
+		this.game.load.image('handle-drag','resources/images/handle-drag.png');
+		this.game.load.image('origin','resources/images/origin.png');
+		this.game.load.image('mapman-default','resources/images/mapman-default.png');
 	},
 
 	create: function(){

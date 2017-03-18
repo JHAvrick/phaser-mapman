@@ -1,4 +1,5 @@
 {
+	"MapManType": "definition",
 	"name": "Sprite",
 	"extends": "PIXI.Sprite",
 	"namespace": "Phaser",

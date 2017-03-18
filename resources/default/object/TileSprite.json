@@ -1,4 +1,6 @@
+
 {
+	"MapManType": "definition",
 	"name": "TileSprite",
 	"extends": "PIXI.TilingSprite",
 	"namespace": "Phaser",

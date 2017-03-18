@@ -14,6 +14,7 @@
 	<link href="css/jqPropertyGrid.css" rel="stylesheet"/>
 
 	<link rel="import" href="test-component.html" id="x-template-import">
+	<link rel="import" href="components/asset-preview.html" id="asset-preview-import">
 
 	<!-- LIB -->
 	<script type="text/javascript" src='lib/phaser.js'r></script>
@@ -143,8 +144,6 @@
 			  e.preventDefault();
 			},false);
 
-
-			console.log(document.getElementById('custcomp'));
 
 		});
 
@@ -298,7 +297,7 @@
 											</div>
 										</td>
 										<td class="right-cell"> 
-											<div id="texture-preview"></div>
+											<asset-preview id="texture-preview"></asset-preview>
 										</td>
 									</tr>
 									<tr style="border: 1px solid black; width: 100%;">

@@ -25,14 +25,35 @@ class ObjectFactory {
 
 	constructor(game){
 		this.game = game;
-
-		this.idIndex = 0;
-		this.keyIndex = 0;
+		this.idIndex = 1;
 	}
 
 	create(definition, imageKey){
-		var sprite = new Phaser.Sprite( this.game, 0, 0, imageKey );
-		var wrapper = new Wrapper( definition, 'id-' + this.idIndex++ ,'object-' + this.keyIndex++, this.game, sprite );
+
+		//Check 
+		switch(definition.extends){
+			case "PIXI.Sprite":
+				if (definition.name === 'Sprite'){
+
+					var display = new Phaser.Sprite( this.game, 0, 0, imageKey );
+
+				} else if (definition.name === 'Image'){
+
+					var display = new Phaser.Image( this.game, 0, 0, imageKey );
+
+				}
+				break;
+			case "Phaser.Sprite":
+				break;
+			case "Phaser.Image":
+				break;
+			case "Phaser.Button":
+				break;
+			case "Phaser.TileSprite":
+				break;
+		}
+
+		var wrapper = new Wrapper( definition, this.idIndex++, this.game, display );
 
 		return wrapper;
 	}

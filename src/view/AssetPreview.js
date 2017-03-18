@@ -1,7 +1,0 @@
-class AssetPreview {
-	constructor(selectorId){
-
-	}
-
-
-}

@@ -104,21 +104,14 @@ class AssetView {
 			}
 		});
 
-		//Canvas drop event
-		var self = this;
-		$(".droppable").droppable({
-			refreshPositions: true,
-			drop: function(event, ui) {
-				if (this.id = 'mapman-canvas'){
+		document.getElementById('mapman-canvas').addEventListener('drop', e => {
+			e.preventDefault();
 
-					var x = event.clientX - $(this).position().left;
-					var y = event.clientY - $(this).position().top;
-					var position = {x: x, y: y};
-					var data = $(ui.draggable[0]).data('nodeData');
+			var node = this.tree.get_node({ id: e.dataTransfer.getData('text') });
 
-					self.events.trigger('assetDropped', position, data);
-				}
-			}
+			this.events.trigger('assetDropped', node.data);
+
+			console.log("FIX ME: Element drag blocking mouse pointer event on canvas causing innacurate drop position")
 		});
 
 	}
@@ -164,8 +157,6 @@ class AssetView {
 
 	//Checks the working directory for a node with the given filename
 	checkFilenameExists(fileName){
-
-		console.log("Exists!");
 
 		var nodeIds = this.tree.get_node(this.workingDirectoryNode).children;	
 
@@ -350,19 +341,12 @@ class AssetView {
 					this.tree.select_node(node)
 				});
 
-				if ([".gif", ".jpeg", ".jpg", ".png"].includes(node.data.ext)){
+				if ([".gif", ".jpeg", ".jpg", ".png", ".json"].includes(node.data.ext)){
 
-					$(div).draggable({	
-										opacity: 0.7, 
-										helper: "clone", 
-										appendTo: "body",
-										start: function(e, ui) {
-												//Add a class to the helper so that CSS can be used to style it
-												//Its important that the helper ignores pointer events so that
-												//the canvas knows where the pointer is
-												$(ui.helper).addClass("ui-draggable-helper");
-											}
-										});
+					div.draggable = true;
+					div.addEventListener('dragstart', e => {
+						e.dataTransfer.setData("text/plain", node.id);
+					})
 
 				}
 

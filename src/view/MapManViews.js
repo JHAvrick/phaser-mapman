@@ -6,7 +6,6 @@ var MapManViews = {
 	LayerView: require('./LayerView.js'),
 	ParamView: require('./ParamView.js'),
 	TabView: require('./TabView.js'),
-	AssetPreview: require('./AssetPreview.js'),
 	FormView: require('./FormView.js'),
 	ToolbarView: require('./ToolbarView.js'),
 	ScreenView: require('./ScreenView.js')
