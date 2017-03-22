@@ -33,9 +33,10 @@ BUGS:
 
 LEFT TO DO:
 	
-	- Create object defintions for Image, Button, Tilesprite..
-	- Create and save prefabs from existing objects
+	- Create object defintions for Button, Tilesprite..
 	- Create and save new defintion
+	- Create and save prefabs from existing objects
+	
 	- Load stage via drag and drop
 	- Load sprite atlas via drag and drop
 	- Duplicate objects
@@ -45,7 +46,7 @@ LEFT TO DO:
 
 	[x] Rotate Tool
 	[ ] Create 'Frame' tool
-	[ ] Correct position on zoom in / out
+	[x] Correct position on zoom in / out
 	[ ]	UI Improvements
 	
 

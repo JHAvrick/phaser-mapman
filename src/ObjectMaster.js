@@ -72,7 +72,6 @@ class ObjectFactory {
 	}
 }
 
-//Responsible for keeping a pool of ALL existing objects and modifying all objects globally
 //Not responsible for creating, deleting, categorizing them
 class ObjectPool {
 
@@ -80,7 +79,6 @@ class ObjectPool {
 		this.stage = stage;
 		this.birthModifiers = [];
 		this.addDeathModifiers = [];
-
 		this.pool = {};
 	}
 

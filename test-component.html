@@ -53,21 +53,18 @@
   </li>
 </template>
 
-<script>
-
-  //Custom list item element
+<script> 
 
   customElements.define('x-template', class extends HTMLElement {
     constructor() {
       super(); // always call super() first in the ctor.
-     
+
       const link = document.querySelector('#x-template-import');
       const template = link.import.querySelector('#x-template');
       const instance = template.content.cloneNode(true);
       let shadowRoot = this.attachShadow({mode: 'open'});
           shadowRoot.appendChild(instance);
 
-      var editEvent = new Event('onEdit');
 
       this.widthInput = shadowRoot.getElementById('width');
       this.heightInput = shadowRoot.getElementById('height');
@@ -187,7 +184,6 @@
           list.appendChild(document.createElement('x-template'));
           list.appendChild(document.createElement('x-template'));
           list.appendChild(document.createElement('x-template'));
-
 
           item.addEventListener('onEdit', e => {
 

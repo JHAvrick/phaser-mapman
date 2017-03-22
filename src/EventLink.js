@@ -3,12 +3,14 @@ var EventLink = {
 	init(){
 
 		MapMan.events = new EventManager();
-		MapMan.ObjectPool = new ObjectPool(Game);
-		MapMan.ObjectFactory = new ObjectFactory(Game);
+		MapMan.ObjectPool = new ObjectPool(this.game);
+		MapMan.ObjectFactory = new ObjectFactory(this.game);
 		MapMan.Stages = new StageMaster(Game);
 		MapMan.Assets = new AssetManager(Game);
 		MapMan.Tools = new ToolBox(Game);
 		MapMan.Definitions = new DefinitionMaster(Game);
+		MapMan.PhaserGroup = new Phaser.Group(this.game);
+
 		MapMan.Settings = {
 
 			settingsMap: {
@@ -39,11 +41,12 @@ var EventLink = {
 	},
 
 	render(){
-		//if (MapMan.Tools.Select.selection !== undefined){
-		//	this.game.debug.spriteBounds(MapMan.Tools.Select.selection.display);
-		//}
-		//var pos = MapMan.Tools.Zoom.adjustedPosition(this.game.input.mousePointer.worldX, this.game.input.mousePointer.worldY);
-		//this.game.debug.text('X: ' + pos.x + ' Y: ' + pos.y, 32, 32);
+
+		var x = Math.floor((this.game.input.mousePointer.x + this.game.camera.x) * MapMan.Tools.Zoom.correctionFactor);
+		var y = Math.floor((this.game.input.mousePointer.y + this.game.camera.y) * MapMan.Tools.Zoom.correctionFactor);
+
+		this.game.debug.text('X: ' + x + ' Y: ' + y, 32, 32);
+		this.game.debug.text('Scale Factor:' + MapMan.Tools.Zoom.scaleFactor, 32, 62);
 	},
 
 	create: function(){
@@ -342,7 +345,84 @@ var EventLink = {
 
 	},
 
+
+	objectCreateHandler(x, y, meta){
+		var definition = meta.definition ? meta.definition : MapMan.Definitions.getActive();
+		var imageKey = meta.imageKey ? meta.imageKey : 'mapman-default';
+		var imagePath = meta.imagePath ? meta.imagePath : 'resources/images/mapman-default.png';
+
+		var newObj = MapMan.ObjectFactory.create(definition, imageKey);
+					 MapMan.ObjectPool.add(newObj);
+
+			newObj.imagePath = imagePath;
+
+		this.layerView.addObject(newObj); //Add the object to the layer view
+		this.stageManager.addToStage(x, y, newObj); //Add the object to the stage
+
+		MapMan.PhaserGroup.add(newObj.display);
+		MapMan.Tools.UILayers.restackTop(); //Restacks elements that should be above the game objects
+
+		MapMan.Stages.active.add(newObj); //Add the new object to the active scene pool
+		MapMan.Stages.setLayerOrder(this.layerView.getLayerOrder().reverse(), true); //Refresh the layer order
+
+		return newObj;
+	},
+
 	addAssetViewEvents: function(){
+/* 
+		 * EVENT: Image dropped onto canvas from AssetView
+		 * RESPONSE: Image is loaded if not already in cache, new Wrapper object is created
+		 */
+		this.assetView.events.on('assetDropped', (data, clientX, clientY) => {
+
+			var pos = MapMan.Tools.Zoom.positionScaled((clientX - 50) + this.game.camera.x, (clientY - 25) + this.game.camera.y);
+
+			if (data){
+
+				if (data.ext === '.json'){
+
+					this.projectManager.loadJSON(data.path).then( json => {
+						switch (json.MapManType){
+							case 'definition':
+
+								this.objectCreateHandler(pos.x, pos.y, {
+									definition: json,
+									imageKey: 'mapman-default',
+									imagePath: 'resources/images/mapman-default.png'
+								});
+
+								break;
+							case 'prefab':
+
+								break;
+
+							case 'scene':
+
+								break;
+							//TO DO: Account for sprite atlas json
+						}
+					});
+
+				} else {
+
+					//If the asset dropped was not a json, it was probably an image file
+					//Create new object of whatever type is currently active (default is sprite) with this image as its texture
+					MapMan.Assets.load(data.path, (imageKey) => {
+
+						this.objectCreateHandler(pos.x, pos.y, {
+							definition: MapMan.Definitions.getActive(),
+							imageKey: imageKey,
+							imagePath: data.path
+						});
+
+					});
+
+				}
+
+			}
+
+		});
+
 
 		this.propertyView.events.on('propertyAdded', (name) => {
 
@@ -387,78 +467,6 @@ var EventLink = {
 
 			if (selection){
 				selection.untrack(name);
-			}
-
-		});
-
-		/* 
-		 * EVENT: Image dropped onto canvas from AssetView
-		 * RESPONSE: Image is loaded if not already in cache, new Wrapper object is created
-		 */
-		this.assetView.events.on('assetDropped', (data) => {
-
-			if (data){
-
-				if (data.ext === '.json'){
-
-					this.projectManager.loadJSON(data.path).then( json => {
-						switch (json.MapManType){
-							case 'definition':
-
-							console.log(json);
-
-								var newObj = MapMan.ObjectFactory.create( json, 'mapman-default' );
-											 MapMan.ObjectPool.add(newObj);
-
-									newObj.imagePath = 'resources/images/mapman-default.png'; 
-										
-								var x = this.game.input.mousePointer.worldX;
-								var y = this.game.input.mousePointer.worldY;
-
-								this.stageManager.addToStage(x, y, newObj); //Add the object to the stage
-								this.layerView.addObject(newObj); //Add the object to the layer view
-								MapMan.Stages.active.add(newObj); //Add the new object to the active scene pool
-
-								MapMan.Stages.setLayerOrder(this.layerView.getLayerOrder().reverse(), true); //Refresh the layer order
-								MapMan.Tools.UILayers.restackTop(); //Restacks elements that should be above the game objects
-
-								break;
-							case 'prefab':
-
-								break;
-
-							case 'scene':
-
-								break;
-							//TO DO: Account for sprite atlas json
-						}
-					});
-
-				} else {
-
-					//If the asset dropped was not a json, it was probably an image file
-					//Create new object of whatever type is currently active (default is sprite) with this image as its texture
-					MapMan.Assets.load(data.path, (imageKey) => {
-
-						var newObj = MapMan.ObjectFactory.create( MapMan.Definitions.getActive(), imageKey );
-									 MapMan.ObjectPool.add(newObj);
-
-							newObj.imagePath = data.path;
-									
-						var x = this.game.input.mousePointer.worldX;
-						var y = this.game.input.mousePointer.worldY;
-
-						this.stageManager.addToStage(x, y, newObj); //Add the object to the stage
-						this.layerView.addObject(newObj); //Add the object to the layer view
-						MapMan.Stages.active.add(newObj); //Add the new object to the active scene pool
-
-						MapMan.Stages.setLayerOrder(this.layerView.getLayerOrder().reverse(), true); //Refresh the layer order
-						MapMan.Tools.UILayers.restackTop(); //Restacks elements that should be above the game objects
-
-					});
-
-				}
-
 			}
 
 		});
@@ -708,25 +716,35 @@ var EventLink = {
 		//DIRECTIONAL CONTROLS
 		Mousetrap.bind(['up'], function(e) {
 
-			this.game.camera.y -= MapMan.Tools.Grid.gridY * MapMan.Tools.Zoom.scaleFactor;
+			this.game.world.pivot.y -= 32;
+			//this.game.camera.y -= 32 *  MapMan.Tools.Zoom.scaleFactor * 2; //* MapMan.Tools.Zoom.scaleFactor;
+	
+
+			//this.game.camera.y -= MapMan.Tools.Grid.gridY * MapMan.Tools.Zoom.scaleFactor;
 
 		}.bind(this));
 
 		Mousetrap.bind(['down'], function(e) {
 
-			this.game.camera.y -= -1 * MapMan.Tools.Grid.gridY * MapMan.Tools.Zoom.scaleFactor;
+			this.game.world.pivot.y += 32;
+
+			//this.game.camera.y -= -1 * MapMan.Tools.Grid.gridY * MapMan.Tools.Zoom.scaleFactor;
 
 		}.bind(this));
 
 		Mousetrap.bind(['left'], function(e) {
 
-			this.game.camera.x -= MapMan.Tools.Grid.gridX * MapMan.Tools.Zoom.scaleFactor;
+			this.game.world.pivot.x += 32;
+
+			//this.game.camera.x -= MapMan.Tools.Grid.gridX * MapMan.Tools.Zoom.scaleFactor;
 
 		}.bind(this));
 
 		Mousetrap.bind(['right'], function(e) {
 
-			this.game.camera.x -= -1 * MapMan.Tools.Grid.gridX * MapMan.Tools.Zoom.scaleFactor;
+			this.game.world.pivot.x -= 32;
+
+			//this.game.camera.x -= -1 * MapMan.Tools.Grid.gridX * MapMan.Tools.Zoom.scaleFactor;
 
 		}.bind(this));
 

@@ -13,7 +13,9 @@
 	<link href="lib/jquery-ui-1.12.1.custom/jquery-ui.min.css" rel="stylesheet"/>
 	<link href="css/jqPropertyGrid.css" rel="stylesheet"/>
 
-	<link rel="import" href="test-component.html" id="x-template-import">
+	<link rel="import" href="components/base/sortable-list.html" id="sortable-import">
+	<link rel="import" href="components/base/editor-input.html" id="editor-input-import">
+	<link rel="import" href="components/property-view.html" id="property-view-import">
 	<link rel="import" href="components/asset-preview.html" id="asset-preview-import">
 
 	<!-- LIB -->
@@ -147,29 +149,6 @@
 
 		});
 
-		/*
-		class CustomElement extends HTMLElement {
-			constructor(){
-				super();
-				var shadow = this.attachShadow({mode: 'open'});
-
-				var widthInput = document.createElement('input');
-					widthInput.type = 'number';
-				var heightInput = document.createElement('input');
-					heightInput.type = 'number';
-				var colorInput = document.createElement('input');
-					colorInput.type = 'color';
-
-				shadow.appendChild(widthInput);
-				shadow.appendChild(heightInput);
-				shadow.appendChild(colorInput);
-
-			}
-		}
-
-		customElements.define('custom-element', CustomElement);
-		*/
-
 	</script>
 
 </head>
@@ -264,13 +243,7 @@
 							<div id="world-panel" class="panel panel-default">
 								<div id="scene-panel-header" class="panel-heading">World</div>
 								<ul id="screenview-list"></ul>
-								<x-list>
-									<x-template></x-template>
-									<x-template></x-template>
-									<x-template></x-template>
-									<x-template></x-template>
-									<x-template></x-template>					
-								</x-list>
+								<property-view></property-view>
 												
 							</div>
 						</div>

@@ -1,0 +1,29 @@
+<template id="custom-template">
+  <style>
+
+  </style>
+    
+    <!-- SHADOW DOM HERE -->
+
+</template>
+
+<script>
+
+//Custom list item element
+class CustomTemplate extends HTMLElement {
+  constructor() {
+    super(); // always call super() first in the ctor.
+   
+    const link = document.querySelector('#custom-template-import');
+    const template = link.import.querySelector('#custom-template');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+
+  }
+
+}
+
+customElements.define('custom-template', CustomTemplate);
+
+</script>

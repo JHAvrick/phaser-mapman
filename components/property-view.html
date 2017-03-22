@@ -1,0 +1,170 @@
+<link rel="import" href="base/sortable-list.html" id="sortable-import">
+<link rel="import" href="base/editor-input.html" id="editor-input-import">
+
+<template id="property-view">
+  <style>
+    #container {
+
+      border: 1px solid gray;
+      width: auto;
+      height: 300px;
+      padding: 5px;
+
+    }
+
+    #property-input {
+      width: calc(100% - 5px);
+      margin: 0;
+    }
+
+    sortable-list {
+      height: calc(100% - 45px);
+    }
+
+  </style>
+    <div id="container">
+      <input id="property-input" placeholder="Enter property...">
+    </div>
+</template>
+  
+<script>
+
+//Custom list item element
+class PropertyView extends HTMLElement {
+  constructor() {
+    super(); // always call super() first in the ctor.
+   
+    const link = document.querySelector('#property-view-import');
+    const template = link.import.querySelector('#property-view');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+
+    this.events = new EventManager();
+    this.list = new SortableList();
+    this.items = new Map();
+    this.input = shadowRoot.getElementById('property-input');
+
+
+    var container = shadowRoot.getElementById('container');
+        container.appendChild(this.list);
+    
+    this.input.addEventListener('change', e => {
+
+      this.events.trigger('propertyEntered', this.input.value.replace(/\s/g,'') );
+      this.input.value = '';
+
+    });
+
+    this.add('x', 100, {type: 'number'});
+    this.add('y', 100, {type: 'text'});
+    this.add('tint', 100, {type: 'color'});
+    this.add('scale', 100, {type: 'number'});
+    this.add('custom', 100, {type: 'number'});
+    this.add('srgerg', 100, {type: 'select', options: [
+                                                  {"name":"ADD", "value": 1},
+                                                  {"name":"MULTIPLY", "value": 2},
+                                                  {"name":"SCREEN", "value": 3},
+                                                  {"name":"OVERLAY", "value": 4},
+                                                  {"name":"DARKEN", "value": 5},
+                                                  {"name":"LIGHTEN", "value": 6},
+                                                  {"name":"COLOR_DODGE", "value": 7},
+                                                  {"name":"COLOR_BURN", "value": 8},
+                                                  {"name":"HARD_LIGHT", "value": 9},
+                                                  {"name":"SOFT_LIGHT", "value": 10},
+                                                  {"name":"DIFFERENCE", "value": 11},
+                                                  {"name":"EXCLUSION", "value": 12},
+                                                  {"name":"HUE", "value": 13},
+                                                  {"name":"SATURATION", "value": 14},
+                                                  {"name":"COLOR", "value": 15},
+                                                  {"name":"LUMINOSITY", "value": 16} ]});
+
+  }
+
+  add(name, value, meta){
+    if (this.items.has(name)) 
+        return;
+
+    if (meta.type === 'select') 
+      var input = new EditorSelect(name, value, meta);
+    else 
+      var input = new EditorInput(name, value, meta);
+    
+    var li = this.list.addItem(name, {
+      selectable: meta.editable || true,
+      children: [input]
+    });
+
+    this._addInputEvents(name, input);
+
+    this.items.set(name, { li: li, input: input });
+  }
+
+  addAll(object){
+    for (var name in object){
+      this.add(name, object[name].value, object[name].meta);
+    }
+  }
+
+  _addInputEvents(name, input){
+
+    input.addEventListener('change', e => {
+
+      var value;
+
+      switch (input.type){
+        case 'text':
+        case 'number':
+            value = input.value;
+          break;
+        case 'checkbox':
+            value = input.checked;
+          break;
+        case 'color':
+            value = parseInt(input.value.replace('#', '0x', 16));
+          break;
+      }
+
+      this.events.trigger('propertyEdited', name, value);
+
+    });
+
+  }
+
+  set(name, value){
+    if (this.items.has(name)){
+      var input = this.items.get(name).input;
+          input.value = this.format(input.type, value);
+    }
+  }
+
+  setAll(object){
+    for (var name in object){
+      this.set(name, object[name].value);
+    }
+  }
+
+  format(inputType, value){
+
+    switch (type){
+      case 'color':
+          if (typeof value === 'number'){
+            var rgb = this.numberToColor(value);
+              value = this.rgbToHex(rgb[0], rgb[1], rgb[2]);
+          }
+        break;
+      case 'select-one':
+      case 'option':
+          //Nothing to format here at the moment
+        break;
+    }
+
+    return value;
+
+  }
+
+}
+
+customElements.define('property-view', PropertyView);
+
+</script>

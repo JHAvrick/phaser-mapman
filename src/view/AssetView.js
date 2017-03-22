@@ -66,21 +66,23 @@ class AssetView {
 		this.container.addEventListener('drop', (event) => {
 			event.preventDefault();
 
-			var path = event.dataTransfer.files[0].path;
+			if (event.dataTransfer.files.length > 0){
+				var path = event.dataTransfer.files[0].path;
 
-			if (path){
-				if (!this.root){
+				if (path){
+					if (!this.root){
 
-					this.events.trigger('projectDropped', path);
+						this.events.trigger('projectDropped', path);
 
-					this.createRoot(path);
+						this.createRoot(path);
 
-				} else {
+					} else {
 
-					this.copyToWorkingDirectory(path);
+						this.copyToWorkingDirectory(path);
 
+					}
+					
 				}
-				
 			}
 
 		});
@@ -109,9 +111,8 @@ class AssetView {
 
 			var node = this.tree.get_node({ id: e.dataTransfer.getData('text') });
 
-			this.events.trigger('assetDropped', node.data);
+			this.events.trigger('assetDropped', node.data, e.clientX, e.clientY);
 
-			console.log("FIX ME: Element drag blocking mouse pointer event on canvas causing innacurate drop position")
 		});
 
 	}
@@ -346,7 +347,7 @@ class AssetView {
 					div.draggable = true;
 					div.addEventListener('dragstart', e => {
 						e.dataTransfer.setData("text/plain", node.id);
-					})
+					});
 
 				}
 

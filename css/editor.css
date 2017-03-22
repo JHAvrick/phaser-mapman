@@ -2,6 +2,12 @@ body {
 	overflow: hidden;
 }
 
+.asset-drag-ghost {
+	width: 100px;
+	height: 100px;
+	
+}
+
 #menu-bar {
 	position: absolute;
 	top: 0;

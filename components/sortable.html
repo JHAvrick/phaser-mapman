@@ -1,0 +1,318 @@
+<template id="editor-input">
+  <style>
+
+    :host {
+      display: flex;
+      width: 100%;
+    }
+
+    span {
+      display: inline-block;
+      border-right: 1px solid gray;
+      width: 25%;
+      height: 100%;
+      padding-left: 5px;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    input {
+      float: left;
+      padding-left: 5px;
+      width: 75%;
+      height: auto;
+      background-color: transparent;
+      border: 0;
+    }
+
+  </style>
+    <span id="label"></span>
+    <input id="input">
+</template>
+
+<script>
+
+//Custom list item element
+class EditorInput extends HTMLElement {
+  constructor(label, value, options) {
+    super(); // always call super() first in the ctor.
+   
+    const link = document.querySelector('#sortable-import');
+    const template = link.import.querySelector('#editor-input');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+
+    var options = options || {};
+
+    this.label = shadowRoot.getElementById('label');
+    this.label.innerHTML = label || '';
+
+    this.input = shadowRoot.getElementById('input');
+    this.input.value = value || '';
+
+    this._applyOptions(options);
+  }
+
+  set value(value){
+    this.input.value = value;
+  }
+
+  get value(){
+    return this.input.value;
+  }
+
+  _applyOptions(options){
+    for (var op in options){
+      if (op in this.input)
+        this.input[op] = options[op];
+      else if (op in this.input.style)
+        this.input.style[op] = options[op];
+    }
+  }
+  
+}
+
+customElements.define('editor-input', EditorInput);
+
+</script>
+
+<template id="sortable-list">
+  <style>
+
+    :host {
+      display: flex;
+      width: auto;
+      height: auto;
+    }
+
+    :host::-webkit-scrollbar {
+        width: .5em;
+        height: .5em
+    }
+
+    ul {
+      border: 1px solid lightgray;
+      width: 100%;
+      height: 100%;
+      padding-left: 0;
+      padding-right: 0;
+      padding-top: 5px;
+      overflow-x: hidden;
+      overflow-y: auto; 
+    }
+
+    li {
+      display: flex;
+      vertical-align: middle;
+      width: calc(100% - 7px);
+      height: 20px;
+      margin-left: 3px;
+      margin-right: 3px;
+      margin-bottom: 3px;
+      background-color: #f6f6f6;
+      border: 1px solid gray;
+      list-style-type: none;
+    }
+
+    .unselected-item {
+      background-color: #f6f6f6;
+    }
+
+    .selected-item {
+      background-color: #c0dcf4;
+    }
+
+    .disabled-item {
+      pointer-events: none;
+      background-color: #d8d8d8;
+    }
+
+    .ghost-item {
+      visibility: hidden;
+    }
+
+  </style>
+  <ul id='list-element'></ul>
+
+</template>
+<script>
+
+class SortableList extends HTMLElement {
+  constructor() {
+    super();
+   
+    const link = document.querySelector('#sortable-import');
+    const template = link.import.querySelector('#sortable-list');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+
+    this.list = shadowRoot.getElementById('list-element');
+    this._selected = undefined;
+    this.items = new Map();
+    this.groups = new Map();
+    this.dragging;
+
+    this.ghostItem = document.createElement('li');
+    this.ghostItem.className = 'ghost-item';
+    this.ghostItem.isActive = false;
+
+    this.addItem('test');
+    this.addItem('test1');
+    this.addItem('test2');
+    this.addItem('test3');
+    this.addItem('test4');
+    this.addItem('test5');
+    this.addItem('test6');
+    this.addItem('test7');
+    this.addItem('test8', {
+        children: [new EditorInput('x', 300, {
+                type: 'number',
+                min: 100,
+                max: 200
+            })]
+    });
+    //this.removeItem('test8');
+
+    this.addToItem('test4', document.createElement('input'));
+    this.disableItem('test4');
+  }
+
+  set selected(li){
+    if (!li.selectable){ return false; }
+
+    if (this._selected){
+      this._selected.className = 'unselected-item';
+    }
+
+    this._selected = li;
+    this._selected.className = 'selected-item';
+  }
+
+  get selected(){
+    return this._selected;
+  }
+
+  clear(){
+    this.items.forEach( item => {
+      this.list.removeChild(item);
+    });
+  }
+
+  removeItem(key){
+    if (this.items.has(key)){
+      this.list.removeChild(this.items.get(key));
+    }
+  }
+
+  disableItem(key){
+    if (this.items.has(key)){
+      this.items.get(key).className = 'disabled-item';
+    }
+  }
+
+  enableItem(key){
+    if (this.items.has(key)){
+      this.items.get(key).className = 'unselected-item';
+    }
+  }
+
+  addItem(key, itemOptions){
+    var options = itemOptions ? itemOptions : {};
+    var draggable = options.draggable != undefined ? options.draggable : true;
+    var selectable = options.selectable != undefined ? options.selectable : true;
+    var disabled = options.disabled != undefined ? options.disabled : false;
+    var onCreate = options.onCreate != undefined ? options.onCreate : () => {};
+    var children = options.children != undefined ? options.children : [];
+
+    var li = document.createElement('li');
+        li.draggable = draggable;
+        li.selectable = selectable;
+
+    this.list.appendChild(li);
+    this.items.set(key, li);
+
+    this._addSelectEvents(li);
+    this._addDragEvents(li);
+    this.addToItem(key, children);
+
+    onCreate(li);
+    return li;
+  }
+
+  addToItem(itemKey, element){
+    if (this.items.has(itemKey)){
+      if (element instanceof Array){
+
+        element.forEach(el => {
+          this.items.get(itemKey).appendChild(el);
+        });
+
+      } else {
+
+        this.items.get(itemKey).appendChild(element);
+
+      }
+    }
+  }
+
+  _addSelectEvents(li){
+
+    li.addEventListener('mousedown', e => {
+        this.selected = li;
+    });
+
+  }
+
+  _addDragEvents(li){
+
+    li.addEventListener('dragstart', e => {
+        this.dragging = li;
+
+        this.list.insertBefore(this.ghostItem, li.nextSibling);
+        this.ghostItem.isActive = true;
+      
+      //hackish, but necessary to overcome HTML5 drag-and-drop shortcomings
+      setTimeout(() => {
+          this.list.removeChild(li);
+        }, 1);
+
+    });
+
+    li.addEventListener('dragend', (e) => {
+
+      if (this.ghostItem.isActive){   
+        this.list.replaceChild(this.dragging, this.ghostItem);
+        this.ghostItem.isActive = false;
+      }
+
+    });
+
+    li.addEventListener('dragover', (e) => {
+
+        let bounds = li.getBoundingClientRect();
+
+        //Bounds belong to the element we're hovering over
+        //The element being dragged has no bounds until it is dropped, so we assume its height
+        //is the same as the element its being dragged over to do our calculations 
+        if (e.pageY - (bounds.height / 2)  > bounds.top){
+
+            this.list.insertBefore(this.ghostItem, li);
+            this.ghostItem.isActive = true;
+
+        } else {
+
+            this.list.insertBefore(this.ghostItem, li.nextSibling);
+            this.ghostItem.isActive = true;
+
+        }
+    });
+
+  }
+
+}
+
+customElements.define('sortable-list', SortableList);
+
+</script>

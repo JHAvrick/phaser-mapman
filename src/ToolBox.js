@@ -15,7 +15,7 @@ class ToolBox {
 		this.addLayers();
 
 		//Passive tools are constantly updated 
-		this.passiveTools = [this.Select, this.Nav]; 
+		this.passiveTools = [this.Select, this.Nav];
 
 		this.stage.input.onDown.add(this.startTool, this);
 		this.stage.input.onUp.add(this.endTool, this);
@@ -266,8 +266,18 @@ class Selector {
 		//--------------------------------------------------------------//
 
 
-		//Check each wrapper in the active layer against the selection bounds
+		//Correct position and size of select box based on zoom level  
+		//--------------------------------------------------------------//
+		x *= MapMan.Tools.Zoom.correctionFactor;
+		y *= MapMan.Tools.Zoom.correctionFactor;
+		width *= MapMan.Tools.Zoom.correctionFactor;
+		height *= MapMan.Tools.Zoom.correctionFactor;
+		//--------------------------------------------------------------//
+
+
+		//Check each wrapper in the active layer against the selection bounds         
 		//-----------------------------------------------------------------------------//
+
 		var boundBox = new Phaser.Rectangle(x, y, width, height);
 		var selectables = MapMan.Stages.active.getActiveLayerObjects();
 
@@ -602,22 +612,22 @@ class RotateHandle extends Phaser.Sprite {
 
 	update(){
 		if (this.target){
-			this.x = this.target.x;
-			this.y = this.target.y;
-		}
+			this.x = this.target.x * MapMan.Tools.Zoom.scaleFactor;
+			this.y = this.target.y * MapMan.Tools.Zoom.scaleFactor;
+		
+			if (this.rotating){
 
-		if (this.rotating){
+				let mouseAngle = Phaser.Math.angleBetween(this.game.input.mousePointer.x, this.game.input.mousePointer.y, this.target.x, this.target.y);
+				let angleDifference = Phaser.Math.radToDeg(mouseAngle - this.mouseStartAngle);
 
-			let mouseAngle = Phaser.Math.angleBetween(this.game.input.mousePointer.x, this.game.input.mousePointer.y, this.target.x, this.target.y);
-			let angleDifference = Phaser.Math.radToDeg(mouseAngle - this.mouseStartAngle);
+				this.target.angle = Math.floor(this.targetStartAngle + angleDifference);
 
-			this.target.angle = Math.floor(this.targetStartAngle + angleDifference);
-
+			}
 		}
 	}
 
 	redraw(target){
-		var diameter = Math.sqrt(Math.pow(target.width, 2) + Math.pow(target.height, 2));
+		var diameter = Math.sqrt(Math.pow(target.width, 2) + Math.pow(target.height, 2)) * MapMan.Tools.Zoom.scaleFactor;
 
 		var graphics = this.game.add.graphics(0, 0);
 			graphics.lineStyle(2, 0x00ff00, 1);
@@ -711,8 +721,8 @@ class Navigator {
 
 		if (this.enabled){
 
-			var movementX = (this.staticPoint.x - this.stage.input.mousePointer.screenX);
-			var movementY = (this.staticPoint.y - this.stage.input.mousePointer.screenY);
+			var movementX = this.staticPoint.x - this.stage.input.mousePointer.screenX;
+			var movementY = this.staticPoint.y - this.stage.input.mousePointer.screenY;
 
 			this.stage.camera.x = this.previousCameraPosition.x + movementX;
 			this.stage.camera.y = this.previousCameraPosition.y + movementY;
@@ -727,9 +737,12 @@ class Zoom {
 
 	constructor(game){
 		this.game = game;
+		this.events = new EventManager();
 
-		this.zoomFactor = 0;
+		//this.zoomFactor = 1;
 		this.scaleFactor = 1;
+		this.reverseScaleFactor = 0;
+		this.correctionFactor = 1;
 
 		this.lowerLimit = -2.05;	//Deepest zoom-in allowed
 		this.upperLimit = .80;	//Deepest zoom-out allowed
@@ -740,68 +753,44 @@ class Zoom {
 	zoom(event){
 
 		if (event.target.nodeName === 'CANVAS'){
-
 			//Zoom out
 			if (event.deltaY > 0){
 
-				if (this.zoomFactor + .05 < this.upperLimit){
-
-					this.zoomFactor += .05;
-					this.scaleFactor -= .05;
-
-				}
+				this.scaleFactor -= .05;
 
 			//Zoom in
 			} else {
 
-				if (this.zoomFactor - .05 > this.lowerLimit){
-
-					this.zoomFactor -= .05;
-					this.scaleFactor += .05;
-
-				}
+				this.scaleFactor += .05;
 
 			}
 
-			/*
-			console.log('-------------------------');
-			console.log("ZOOM: " + this.zoomFactor);
-			console.log("SCALE:" + this.scaleFactor);
-			console.log("WIDTH: " + this.game.width);
-			console.log(this.game.world.pivot);
-			console.log('-------------------------');
-			*/
+			this.reverseScaleFactor = (1 - this.scaleFactor);
+			this.correctionFactor = 1 / this.scaleFactor;
 
-			this.game.world.scale.set(1 - this.zoomFactor);
-			this.clampCameraToGrid();
+			MapMan.PhaserGroup.scale.x = this.scaleFactor;
+			MapMan.PhaserGroup.scale.y = this.scaleFactor;
+
+			this.events.trigger('zoomChanged', this.scaleFactor, this.correctionFactor);
 
 		}
 
-
+		
 	}
 
 	resetZoom(){
 
-		this.zoomFactor = 0;
+
 		this.scaleFactor = 1;
-		this.game.world.scale.set(1 - this.zoomFactor);
-		this.clampCameraToGrid();
+		this.correctionFactor = 1;
+		this.reverseScaleFactor = 0;
+		MapMan.PhaserGroup.scale.set(1, 1);
+		//this.game.world.scale.set(1);
 
 	}
 
-	clampCameraToGrid(){
-		var clampX = MapMan.Tools.Grid.gridX * this.scaleFactor;
-		var clampY = MapMan.Tools.Grid.gridY * this.scaleFactor;
-
-		this.game.camera.x = Math.ceil(this.game.camera.x / clampX) * clampX
-		this.game.camera.y = Math.ceil(this.game.camera.y / clampY) * clampY;
-	}
-
-	adjustedPosition(x, y){
-		var adjX = this.game.width * this.zoomFactor;
-		var adjY = this.game.height * this.zoomFactor;
-
-		return { x: x + adjX, y: y + adjY }
+	positionScaled(x, y){
+		return {x: x * this.correctionFactor, y: y * this.correctionFactor};
 	}
 
 }
@@ -954,6 +943,9 @@ class Grid {
 
 				this.gridSprites.push(sprite);
 				this.gridSprites.push(label);
+
+				MapMan.PhaserGroup.add(sprite);
+				MapMan.PhaserGroup.add(label);
 			}
 		}
 
@@ -1008,6 +1000,9 @@ class ScreenFrames {
 					frame.label = this.game.add.text(frame.width + 5, 0, 'W:' + frame.width + ' H:' + frame.height, { font: "12px Arial", fill:  '#fff' });
 					frame.label.visible = false;
 					frame.label.tint = frame.color;
+
+				MapMan.PhaserGroup.add(frame.sprite);
+				MapMan.PhaserGroup.add(frame.label);
 			}
 		});
 	}
