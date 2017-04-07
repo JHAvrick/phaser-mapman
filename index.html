@@ -15,7 +15,11 @@
 
 	<link rel="import" href="components/base/sortable-list.html" id="sortable-import">
 	<link rel="import" href="components/base/editor-input.html" id="editor-input-import">
+	<link rel="import" href="components/base/toggle-button.html" id="toggle-button-import">
+	<link rel="import" href="components/base/treedom.html" id="treedom-import">
+
 	<link rel="import" href="components/property-view.html" id="property-view-import">
+	<link rel="import" href="components/parameter-view.html" id="parameter-view-import">
 	<link rel="import" href="components/asset-preview.html" id="asset-preview-import">
 
 	<!-- LIB -->
@@ -146,7 +150,6 @@
 			  e.preventDefault();
 			},false);
 
-
 		});
 
 	</script>
@@ -223,8 +226,7 @@
 
 		<div id="property-menu-wrapper" class="panel panel-default">
 			 	<div id="layer-container">
-			 		<div id="layer-tree">
-			 		</div>
+					<tree-dom id="layer-view"></tree-dom>
 			 		<div id="layer-toolbar">
 			 			<button id="btn-add-layer"></button>
 			 			<button id="btn-remove-layer"></button>
@@ -243,7 +245,7 @@
 							<div id="world-panel" class="panel panel-default">
 								<div id="scene-panel-header" class="panel-heading">World</div>
 								<ul id="screenview-list"></ul>
-								<property-view></property-view>
+								<property-view id="scene-properties"></property-view>
 												
 							</div>
 						</div>
@@ -277,9 +279,7 @@
 										<td class='full-cell' colspan="2">
 											<div id="object-param-panel">
 												<div class="mapman-header">Parameters</div>
-												<ul id="object-param-list">
-													
-												</ul>
+												<parameter-view id="object-param-list"></parameter-view>
 											</div>
 										</td>
 									</tr>
@@ -290,12 +290,7 @@
 						<div id="tab-properties" class="tab-container">
 							<div id="prop-panel" class="panel panel-default">
 								<div id="prop-panel-header" class="panel-heading">Properties</div>
-									<input type="text" name="prop-name" placeholder="Enter property..." id="prop-grid-input">
-									<div id="prop-grid-wrapper">
-										<table id="prop-grid">
-
-										</table>
-									</div>
+									<property-view id="prop-grid"></property-view>
 							</div>
 						</div>
 

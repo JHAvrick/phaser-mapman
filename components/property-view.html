@@ -3,13 +3,15 @@
 
 <template id="property-view">
   <style>
+    :host {
+      display: flex;
+    }
+
     #container {
-
       border: 1px solid gray;
-      width: auto;
-      height: 300px;
+      width: 100%;
+      height: 100%;
       padding: 5px;
-
     }
 
     #property-input {
@@ -45,7 +47,6 @@ class PropertyView extends HTMLElement {
     this.items = new Map();
     this.input = shadowRoot.getElementById('property-input');
 
-
     var container = shadowRoot.getElementById('container');
         container.appendChild(this.list);
     
@@ -56,46 +57,30 @@ class PropertyView extends HTMLElement {
 
     });
 
-    this.add('x', 100, {type: 'number'});
-    this.add('y', 100, {type: 'text'});
-    this.add('tint', 100, {type: 'color'});
-    this.add('scale', 100, {type: 'number'});
-    this.add('custom', 100, {type: 'number'});
-    this.add('srgerg', 100, {type: 'select', options: [
-                                                  {"name":"ADD", "value": 1},
-                                                  {"name":"MULTIPLY", "value": 2},
-                                                  {"name":"SCREEN", "value": 3},
-                                                  {"name":"OVERLAY", "value": 4},
-                                                  {"name":"DARKEN", "value": 5},
-                                                  {"name":"LIGHTEN", "value": 6},
-                                                  {"name":"COLOR_DODGE", "value": 7},
-                                                  {"name":"COLOR_BURN", "value": 8},
-                                                  {"name":"HARD_LIGHT", "value": 9},
-                                                  {"name":"SOFT_LIGHT", "value": 10},
-                                                  {"name":"DIFFERENCE", "value": 11},
-                                                  {"name":"EXCLUSION", "value": 12},
-                                                  {"name":"HUE", "value": 13},
-                                                  {"name":"SATURATION", "value": 14},
-                                                  {"name":"COLOR", "value": 15},
-                                                  {"name":"LUMINOSITY", "value": 16} ]});
+  }
 
+  clear(){
+    this.list.clear(); //clear sortable list
+    this.items.clear(); //clear item map
   }
 
   add(name, value, meta){
-    if (this.items.has(name)) 
+    if (this.items.has(name)) //Do nothing if a property with the given name already exists
         return;
 
-    if (meta.type === 'select') 
-      var input = new EditorSelect(name, value, meta);
-    else 
-      var input = new EditorInput(name, value, meta);
-    
+    // Build our component
+    //------------------------------------------------//
+    var input = new EditorInput(name, this.format(meta.type || 'text', value), meta);
     var li = this.list.addItem(name, {
       selectable: meta.editable || true,
       children: [input]
     });
+    //------------------------------------------------//
 
-    this._addInputEvents(name, input);
+    //Edit event is triggered by both a 'change' and 'input' event
+    input.addEventListener('edited', e => {
+      this.events.trigger('propertyEdited', name, input.value);
+    });
 
     this.items.set(name, { li: li, input: input });
   }
@@ -104,31 +89,6 @@ class PropertyView extends HTMLElement {
     for (var name in object){
       this.add(name, object[name].value, object[name].meta);
     }
-  }
-
-  _addInputEvents(name, input){
-
-    input.addEventListener('change', e => {
-
-      var value;
-
-      switch (input.type){
-        case 'text':
-        case 'number':
-            value = input.value;
-          break;
-        case 'checkbox':
-            value = input.checked;
-          break;
-        case 'color':
-            value = parseInt(input.value.replace('#', '0x', 16));
-          break;
-      }
-
-      this.events.trigger('propertyEdited', name, value);
-
-    });
-
   }
 
   set(name, value){
@@ -146,7 +106,7 @@ class PropertyView extends HTMLElement {
 
   format(inputType, value){
 
-    switch (type){
+    switch (inputType){
       case 'color':
           if (typeof value === 'number'){
             var rgb = this.numberToColor(value);
@@ -154,13 +114,27 @@ class PropertyView extends HTMLElement {
           }
         break;
       case 'select-one':
+      case 'select':
       case 'option':
           //Nothing to format here at the moment
         break;
     }
 
     return value;
+  }
 
+  numberToColor(num) {
+      num >>>= 0;
+      var b = num & 0xFF,
+          g = (num & 0xFF00) >>> 8,
+          r = (num & 0xFF0000) >>> 16,
+          a = ( (num & 0xFF000000) >>> 24 ) / 255 ;
+      return [r, g, b, a];
+  }
+  
+  //This method was borrowed from here: http://stackoverflow.com/questions/5623838/rgb-to-hex-and-hex-to-rgb
+  rgbToHex(r, g, b) {
+      return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
   }
 
 }

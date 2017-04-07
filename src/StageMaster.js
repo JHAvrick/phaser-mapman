@@ -6,94 +6,28 @@
 //			  └── Layers (lookup by key)
 //			  └── Groups (lookup by key)
 
-class StageMaster {
+class SceneMaster {
 
 	constructor(game){
 		this.game = game;
 
-		this.pool = new StagePool(this.game);
-		this.factory = new StageFactory(this.game); 
-
-		this.active = undefined;
+		this.sceneIdIndex = 0;
+		this.pool = new Map();
+		this.Active = undefined;
 	}
 
 	reset(){
 		//TO DO: Create an actual reset function
 	}
 
-	newStage(){
-		var stage = this.factory.create();
+	createScene(key){
+		var sceneId = 'scene-' + this.sceneIdIndex++;
+		var scene = new Scene(sceneId, key || sceneId, this.game);
 
-		this.pool.add(stage);
-		this.setActiveStage(stage.id);
+		this.pool.set(sceneId, scene);
+		this.Active = scene;
 
-		return stage;
-	}
-
-	setActiveStage(id){
-		var stage = this.pool.getStage(id);
-
-		if (stage){
-			this.active = stage;
-		}
-	}
-
-	setActiveLayer(id){
-		this.active.setActiveLayer(id);
-	}
-
-	getActiveLayerId(){
-		return this.active.activeLayer.id;
-	}
-
-	deleteActiveLayer(){
-		this.active.deleteActiveLayer();
-	}
-
-	inActiveLayer(wrapper){
-		return this.active.inActiveLayer(wrapper);
-	}
-
-	getWrapper(id){
-		return this.active.getWrapper(id);
-	}
-
-	setLayerOrder(layerIds, restack){
-		this.active.setLayerOrder(layerIds, restack);
-	}
-
-	restack(){
-		this.active.restack();
-	}
-
-	action(actionObj){
-		this.active.action(actionObj);
-	}
-
-	undo(){
-		this.active.undo();
-	}
-
-	unhideLayer(id){
-		this.active.unhideLayer(id);
-	}
-
-	hideLayer(id){
-		this.active.hideLayer(id);
-	}
-}
-
-class StageFactory {
-
-	constructor(game){
-		this.game = game;
-
-		this.stageKeyIndex = 0;
-		this.stageIdIndex = 0;
-	}
-
-	create(){
-		return new Scene('stage-' + this.stageIdIndex++, 'New Stage ' + this.stageKeyIndex++, this.game);
+		return scene;
 	}
 
 }
@@ -119,9 +53,8 @@ class Scene {
 	setLayerOrder(layerIds, restack){
 		this.layerOrder = layerIds;
 
-		if (restack){
+		if (restack)
 			this.restack();
-		}
 	}
 
 	restackAboveActiveLayer(){
@@ -187,17 +120,19 @@ class Scene {
 		}
 	}
 
-	newLayer(id){
+	addLayer(id, setAsActive){
+
 		if (!this.layers[id]){
 			this.layers[id] = 	{ 
 								id: id, 
 								hidden: false,
-								zOrder: this.layerOrder.length, 
-								name: id, actions: new ActionStack(), 
-								objects: new ObjectPool() 
+								name: id, 
+								actions: new ActionStack(),
+								objects: new ObjectPool()
 								};
 
-			this.layerOrder.push(id);
+			if (setAsActive)
+				this.setActiveLayer(id);
 
 			return id;
 		}
@@ -234,6 +169,11 @@ class Scene {
 		this.activeLayer.objects.modifyAll((wrapper) =>{
 			wrapper.display.inputEnabled = true;
 		});
+	}
+
+	setLayerName(id, name){
+		if (this.layers[id])
+			this.layers[id].name = name;
 	}
 
 	inActiveLayer(wrapper){

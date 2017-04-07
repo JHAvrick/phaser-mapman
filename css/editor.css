@@ -1,3 +1,5 @@
+
+
 body {
 	overflow: hidden;
 }
@@ -97,7 +99,7 @@ body {
 	padding: 0;
 	margin: 0;
 	width: 20%;
-	min-width: 15%;
+	min-width: 300px;
 	max-width: 40%;
 	height: 100vh;
 }
@@ -109,6 +111,14 @@ body {
 #layer-container {
 	width: 100%;
 	height: 25%;
+}
+
+#layer-view {
+	width: 100%;
+	height: 100%;
+	overflow-x: hidden;
+	overflow-y: auto;
+	--node-height: 25px;
 }
 
 #layer-toolbar {
@@ -131,6 +141,15 @@ body {
 	border: 0;
 	width: 30px;
 	height: 100%;
+}
+
+#layer-toolbar input {
+	border: 0;
+    outline: none;
+    padding-left: 5px;
+    height: 100%;
+    width: calc(100% - 60px);
+    background-color: transparent;
 }
 
 .layerbtn-visible {
@@ -188,6 +207,7 @@ body {
 	padding-top: 2px;
 	text-align: center;
 	vertical-align: middle;
+	margin: 0;
 }
 
 .modal {
@@ -237,7 +257,13 @@ body {
 
 #object-param-panel {
 	width: 100%;
-	height: 300px;
+	min-height: 200px;
+}
+
+
+#object-param-panel parameter-view {
+	width: 100%;
+	min-height: 200px;
 }
 
 #object-table {
@@ -330,7 +356,7 @@ body {
 	background-color: #e9e9e9;
 }
 
-/*------------- PROPERTY GRID----------- */
+/*------------- PROPERTY TABS ----------- */
 
 #tabview-wrapper {
 	position: absolute;
@@ -351,78 +377,13 @@ body {
 	height: 100%;
 }
 
-#prop-grid-wrapper {
-	border: 1px solid gray;
-	position: absolute;
-	width: calc(100% - 30px);
-	overflow-y: scroll;
-	margin-left: 10px;
-	bottom: 15px;
-	top: 130px;
-}
+/*------------- PROPERTY GRID----------- */
 
-#prop-grid-input {
-	margin: 10px;
-	width: calc(100% - 20px);
-}
-
-#prop-grid{
-	overflow-y: scroll;
+#prop-grid {
 	width: 100%;
+	height: calc(100% - 50px);
 }
-
-#prop-grid .prop-row:hover {
-	background-color: lightgray;
-}
-
-#prop-grid .prop-row .prop-name-cell {
-	border: 1px solid lightgray;
-	padding-left: 5px;
-	width: 47%;
-}
-
-#prop-grid .prop-row .prop-input-cell {
-	border: 1px solid lightgray;
-	padding: 0;
-	margin: 0;
-	width: 47%;
-}
-
-#prop-grid .prop-row input {
-	width: 100%;
-	border: 0;
-	background-color: transparent;
-	border-style: outset;
-	outline: none;
-}
-
-#prop-grid .prop-row select {
-	width: 100%;
-	border: 0;
-	background-color: transparent;
-	border-style: outset;
-	outline: none;
-}
-
-#prop-grid .prop-row .remove-btn-cell {
-	padding: 0;
-	margin: 0;
-	border: 1px solid lightgray;
-	width: 6%;
-}
-
-#prop-grid .prop-row .remove-prop-btn {
-	border: 0;
-	width: 100%;
-	margin: 0;
-	padding: 0;
-	background-color: transparent;
-}
-
-#prop-grid .prop-row .remove-btn-cell:hover {
-	background-color: pink;
-}
-
+ 
 /*------------- jquery shit ------------------------*/
 
 .ui-dialog .ui-dialog-content {

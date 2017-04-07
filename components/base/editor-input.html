@@ -3,13 +3,13 @@
 
     :host {
       display: flex;
-      width: 100%;
+      width: var(--editor-input-width, auto);
     }
 
     span {
       display: inline-block;
       border-right: 1px solid gray;
-      width: 25%;
+      width: 35%;
       height: 100%;
       padding-left: 5px;
       text-align: left;
@@ -19,56 +19,135 @@
     input {
       float: left;
       padding-left: 5px;
-      width: 75%;
+      width: 65%;
+      height: auto;
+      background-color: var(--editor-input-bgcolor, transparent);
+      border: 0;
+      outline: none;
+    }
+
+    select {
+      float: left;
+      padding-left: 5px;
+      width: 65%;
       height: auto;
       background-color: transparent;
       border: 0;
     }
 
   </style>
-    <span id="label"></span>
-    <input id="input">
 </template>
 
 <script>
 
-//Custom list item element
+/**
+ * EditorInput encapsulates html "input" and "select" elements
+ * @param {String} label - the text for the input label, if null, the label will not be displayed
+ * @param {String | Number} value - the value to assign to the input
+ * @param {Object} meta - configuration variables for the input and label
+ * @param {String} meta.type - the type of input to use, valid types are "text", "number", "color", "checkbox", "select"
+ * @param {Object} meta.options - dropdown options if the input type is "select"
+ * @param {Object} meta.label - an object specifying label element attributes
+ * @param {Object} meta.input - an object specifying input or select element attributes
+ */
 class EditorInput extends HTMLElement {
-  constructor(label, value, options) {
-    super(); // always call super() first in the ctor.
-   
+  constructor(label, value, meta = {}) {
+    super();
+
+    //Build template
     const link = document.querySelector('#editor-input-import');
     const template = link.import.querySelector('#editor-input');
     const instance = template.content.cloneNode(true);
     let shadowRoot = this.attachShadow({mode: 'open'});
         shadowRoot.appendChild(instance);
 
-    var options = options || {};
+    //Defaults
+    this._disabled = false;
+    this._type = meta.type ? meta.type : 'text';
+    this._editEvent = new Event('edited');
 
-    this.label = shadowRoot.getElementById('label');
-    this.label.innerHTML = label || '';
 
-    this.input = shadowRoot.getElementById('input');
-    this.input.value = value || '';
+    // Create the specified input type
+    //-------------------------------------------------------//
+    this._label = document.createElement('span');
+    this._label.innerHTML = label;
 
-    this._applyOptions(options);
+    if (this._type === 'select'){
+      this._input = document.createElement('select');
+      this.addSelectOptions(meta.options);
+    }
+    else {
+      this._input = document.createElement('input');
+      this._input.type = this._type;
+    }
+
+    this._input.value = value ? value : 0;
+    //-------------------------------------------------------//
+
+
+    //Add event handling, multiple events will trigger the 'edited' event
+    this._input.addEventListener('change', e => { this.dispatchEvent(this._editEvent); });
+    this._input.addEventListener('input', e => { this.dispatchEvent(this._editEvent); });
+  
+    //Add elements to the shadow dom
+    shadowRoot.appendChild(this._label);
+    shadowRoot.appendChild(this._input);
+  }
+
+  /**
+ * Adds option elements to this EditorInput if it is of the type 'select'
+ * @param {Array} options - an array of objects with name/value properties, or an array of strings to use as both name and value
+ */
+  addSelectOptions(options){
+    if (this._type === 'select'){
+      for (let i = 0; i < options.length; i++){
+        var option = document.createElement('option');
+
+          if (options[i] !== null && typeof options[i] === 'object'){
+            option.innerHTML = options[i].name;
+            option.value = options[i].value;
+          } else {
+            option.innerHTML = options[i];
+            option.value = options[i];
+          }
+
+        this.input.appendChild(option);
+      }
+    }
+  }
+
+  set disabled(bool){
+    this._disabled = bool;
+    this._input.disabled = bool;
+  }
+
+  get disabled(){
+    return this._disabled;
   }
 
   set value(value){
-    this.input.value = value;
+    this._input.value = value;
   }
 
   get value(){
-    return this.input.value;
+    switch (this._type){
+      case 'text':
+      case 'number':
+      case 'select':
+        return this._input.value;
+      case 'checkbox':
+        return this._input.checked;
+      case 'color':
+        return parseInt(this._input.value.replace('#', '0x', 16));
+    }
   }
 
-  _applyOptions(options){
-    for (var op in options){
-      if (op in this.input)
-        this.input[op] = options[op];
-      else if (op in this.input.style)
-        this.input.style[op] = options[op];
-    }
+  get type(){
+    return this._type;
+  }
+
+  get input(){
+    return this._input;
   }
   
 }
@@ -77,89 +156,3 @@ customElements.define('editor-input', EditorInput);
 
 </script>
 
-<template id="editor-select">
-  <style>
-
-    :host {
-      display: flex;
-      width: 100%;
-    }
-
-    span {
-      display: inline-block;
-      border-right: 1px solid gray;
-      width: 25%;
-      height: 100%;
-      padding-left: 5px;
-      text-align: left;
-      vertical-align: middle;
-    }
-
-    select {
-      float: left;
-      padding-left: 5px;
-      width: 75%;
-      height: auto;
-      background-color: transparent;
-      border: 0;
-    }
-
-  </style>
-    <span id="label"></span>
-    <select id="select"></select>
-</template>
-
-<script>
-
-//Custom list item element
-class EditorSelect extends HTMLElement {
-  constructor(label, value, meta) {
-    super(); // always call super() first in the ctor.
-   
-    const link = document.querySelector('#editor-input-import');
-    const template = link.import.querySelector('#editor-select');
-    const instance = template.content.cloneNode(true);
-    let shadowRoot = this.attachShadow({mode: 'open'});
-        shadowRoot.appendChild(instance);
-
-    var meta = meta || {};
-        meta.options = meta.options || [];
-
-    this.label = shadowRoot.getElementById('label');
-    this.label.innerHTML = label || '';
-
-    this.select = shadowRoot.getElementById('select');
-    this.select.value = value || 0;
-
-    this.addSelections(meta.options);
-  }
-
-  set value(value){
-    this.select.value = value;
-  }
-
-  get value(){
-    return this.select.value;
-  }
-
-  addSelections(options){
-    for (let i = 0; i < options.length; i++){
-      var option = document.createElement('option');
-
-        if (options[i] !== null && typeof options[i] === 'object'){
-          option.innerHTML = options[i].name;
-          option.value = options[i].value;
-        } else {
-          option.innerHTML = options[i];
-          option.value = options[i];
-        }
-
-      this.select.appendChild(option);
-    }
-  }
-
-}
-
-customElements.define('editor-select', EditorSelect);
-
-</script>

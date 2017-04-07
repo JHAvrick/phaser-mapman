@@ -46,6 +46,7 @@
 
     .disabled-item {
       pointer-events: none;
+      opacity: .6;
       background-color: #d8d8d8;
     }
 
@@ -54,8 +55,8 @@
     }
 
   </style>
-  <ul id='list-element'></ul>
-
+  <ul id='list-element'>
+  </ul>
 </template>
 <script>
 
@@ -81,6 +82,10 @@ class SortableList extends HTMLElement {
     
   }
 
+  static get observedAttributes() {
+    return ['selected', 'open'];
+  }
+
   set selected(li){
     if (!li.selectable){ return false; }
 
@@ -100,6 +105,7 @@ class SortableList extends HTMLElement {
     this.items.forEach( item => {
       this.list.removeChild(item);
     });
+    this.items.clear();
   }
 
   removeItem(key){
@@ -138,6 +144,9 @@ class SortableList extends HTMLElement {
     this._addSelectEvents(li);
     this._addDragEvents(li);
     this.addToItem(key, children);
+
+    if (disabled)
+      this.disableItem(li);
 
     onCreate(li);
     return li;
@@ -216,5 +225,40 @@ class SortableList extends HTMLElement {
 }
 
 customElements.define('sortable-list', SortableList);
+
+</script>
+
+
+
+
+<template id="sortable-item">
+  <style>
+
+    :host {
+      display: flex;
+      width: auto;
+      height: auto;
+    }
+
+  </style>
+
+</template>
+<script>
+
+class SortableItem extends HTMLLIElement {
+  constructor() {
+    super();
+   
+    const link = document.querySelector('#sortable-import');
+    const template = link.import.querySelector('#sortable-item');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+
+  }
+
+}
+
+customElements.define('sortable-item', SortableItem, { extends: 'li' });
 
 </script>

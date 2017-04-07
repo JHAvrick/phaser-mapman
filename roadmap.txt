@@ -41,7 +41,7 @@ LEFT TO DO:
 	- Load sprite atlas via drag and drop
 	- Duplicate objects
 	- Duplicate layers?
-	- Rename layers
+	[x] Rename layers
 	- Bring object to top
 
 	[x] Rotate Tool

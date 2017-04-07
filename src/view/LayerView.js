@@ -1,216 +1,125 @@
+
+//EVENTS
+	// layerSwitched - return layer id
+	// objectSelected - return object id
+	// layer hidden 
+	// layer unhidden
+	// layer added - return layer id
+	// object added - return obj id
+
 class LayerView {
 	constructor(){
 		this.events = new EventManager();
 
-		this.activeLayerId = undefined;
-		this.allLayerIds = [];
-		this.allBtnIds = [];
-		this.btns = [];
-
-		this.nodeState = {};
-
-		$('#layer-tree').jstree({ 
-			"core": { 	check_callback: true,
-						data: [],
-						multiple: false,
-						error: function(err){
-							//console.log(err);
-						},
-						'check_callback': function(operation, node, node_parent, node_position, more) {
-									// operation can be 'create_node', 'rename_node', 'delete_node', 'move_node' or 'copy_node'
-									// in case of 'rename_node' node_position is filled with the new node name
-
-									if (operation === "move_node") {
-										if (node.data.type === 'object'){
-											return false;
-										}
-										return node_parent.id === '#'; //Returns true, allowing operation, if the parent node is the root
-									}
-
-									return true;  //allow all other operations
-						}
-					},
-			"plugins": ["wholerow", "dnd"],
-			"dnd": {
-				check_while_dragging: true
-			}
-		});
-		this.tree = $.jstree.reference('#layer-tree');
+		//DOM components
+		this.tree = document.getElementById('layer-view');
+		this.addLayerBtn = document.getElementById('btn-add-layer');
+		this.delLayerBtn = document.getElementById('btn-remove-layer');
 
 		this.layerIdIndex = 0;
+		this.activeLayer = undefined; //Holds reference to active LayerNode 
 
-		this.addEvents();
-
-		//Add default layer
-		this.addLayer();
+		this._events();
 
 	}
 
-	addEvents(){
+	_events(){
 
-		$('#layer-tree').on('select_node.jstree', (event, nodeData) => {
-			var node = nodeData.node;
+		this.tree.on('nodeSelected', e => {
 
-			if (node.data.type == 'layer' && node.id !== this.activeLayerId){
-				this.tree.deselect_node({ id: this.activeLayerId }); //Deselect previously active layer
+			var node = e.data.node;
 
-				this.activeLayerId = node.id;
+			if (node instanceof LayerNode){
+				if (node === this.activeLayer) return;
+				
+				this.activeLayer = node;
+				this.events.trigger('layerSwitched',  this.activeLayer.key);
 
-				this.events.trigger('layerSwitched', this.activeLayerId);
+			} else if (node instanceof ObjectNode){
 
-			} else if (node.data.type == 'object') {
+				//if object selected is not a child of the active layer, switch the active layer
+				if (node.parent !== this.activeLayer.key){
 
-				var parentId = this.getParentId(node.id);
+					this.activeLayer = this.tree.getNode(node.parent);
+					this.events.trigger('layerSwitched', this.activeLayer.key);
 
-				if (parentId === this.activeLayerId){
-
-					this.events.trigger('objectSelected', node.id);
-
-				} else {
-
-					//Switch active layer if the object selected is under a non-active layer
-					this.tree.select_node({id: parentId});
-
-					this.events.trigger('objectSelected', node.id);
 				}
+
+				this.events.trigger('objectSelected', node.key);
 
 			}
 
 		});
 
-		$('#layer-tree').on('move_node.jstree', (node, parent, position) => {
-			console.log("Node Moved!");
+		this.tree.on('layerToggled', e => {
 
-			this.events.trigger('layerMoved', this.getLayerOrder());
+			if (!e.data.state) //i.e. toggle state is OFF
+				this.events.trigger('layerHidden', e.data.node.key);
+			else 
+				this.events.trigger('layerUnhidden', e.data.node.key);
+
 		});
 
+		this.tree.on('nodeMoved', e => {
 
-		$('#layer-tree').on('redraw.jstree', (event, data) => {
-			this.resetNodeState(data.nodes);
+			var node = e.data.node;
+
+			if (node instanceof LayerNode)
+				this.events.trigger('layerMoved', this.tree.getNodeOrder());
+
 		});
 
-		document.getElementById('btn-add-layer').addEventListener('click', (event) => {
-			this.addLayer();
+		this.tree.on('layerNameEdited', e => {
+			this.events.trigger('layerNameEdited', e.data.node.key, e.data.value);
 		});
 
-		document.getElementById('btn-remove-layer').addEventListener('click', (event) => {
-			this.removeSelected();
+		//Toolbar events
+		this.addLayerBtn.addEventListener('click', (event) => { this.addLayer(); });
+		this.delLayerBtn.addEventListener('click', (event) => { this.removeSelectedLayer(); });
+
+	}
+
+
+	addLayer(suppressEvent){
+		var layer = this.tree.addNode({
+			key: 'layer-' + this.layerIdIndex++,
+			type: LayerNode
 		});
 
+		layer.name = layer.key;
+
+		if (!suppressEvent)
+			this.events.trigger('layerAdded', layer.key);
+
+		return layer.key;
 	}
 
-	resetNodeState(nodes){
-		if (!nodes) { return; }
-
-		nodes.forEach((id) => {
-			var node = this.tree.get_node({id: id});
-
-			if (node.data.type == 'layer'){
-
-				var hideBtn = document.getElementById(id).getElementsByClassName('layerbtn-visible')[0];
-
-				if (this.nodeState[id].hidden){
-					hideBtn.style.backgroundImage = 'url()';
-				}
-					
-				hideBtn.addEventListener('click', (event) =>{
-					if (this.nodeState[id].hidden){
-
-						hideBtn.style.backgroundImage = 'url(resources/icon/icon-eye.png)';
-
-						this.nodeState[id].hidden = false;
-
-						this.events.trigger('layerUnhidden', id);
-						
-					} else {
-
-						hideBtn.style.backgroundImage = 'url()';
-
-						this.nodeState[id].hidden = true;
-
-						this.events.trigger('layerHidden', id);
-					}
-
-
-				});
-
-			}
-		});
+	selectLayer(layerId){
+		this.tree.select(layerId);
 	}
 
-	getLayerId(){
-		return 'layer-' + this.layerIdIndex++;
-	}
-
-	addLayer(){
-
-		var layerId = this.getLayerId();
-		var btnId = layerId+'-toggle-hidden';
-		var layerNode = {
-							id: layerId,
-							text: layerId + '<button class="layerbtn-visible" id="'+ btnId +'"></button>',
-							icon: 'resources/icon/icon-layer.png',
-							data: {
-									type: 'layer',
-									hidden: false,
-								}
-						}
-
-		this.nodeState[layerId] = { hidden: false };
-
-		this.tree.create_node('#', layerNode, 'first', () => {
-
-			this.events.trigger('layerAdded', layerId);
-
-			this.tree.select_node({ id: layerId });
-
-		});	
-
-		return layerId;
-	}
-
-	isLayerNode(id){
-		var node = this.tree.get_node({ id: id });
-		if (node.data.type == 'layer'){
-			return true;
-		}
-		return false;
-	}
-
-	isObjectNode(id){
-		var node = this.tree.get_node({ id: id });
-		if (node.data.type == 'object'){
-			return true;
-		}
-		return false;
-	}
-
-	getParentId(id){
-		return this.tree.get_node({ id: id }).parent;
+	selectObject(objectId){
+		this.tree.select(objectId, true);
 	}
 
 	getActiveLayer(){
-		return this.tree.get_node({ id: this.activeLayerId });
+		return this.activeLayer;
 	}
 
 	addObject(wrapper){
 
-		var objectNode = {
-							id: wrapper.id,
-							text: wrapper.name,
-							icon: 'resources/icon/icon-object.png',
-							data: {
-									type: 'object',
-									}
-						}
+		var objectNode = this.tree.addNode({
+			parent: this.activeLayer,
+			key: wrapper.id,
+			type: ObjectNode
+		});
 
-		this.tree.create_node( this.getActiveLayer(), objectNode, 'last', () => {
+		objectNode.name = wrapper.name;
 
-			this.events.trigger('objectAdded', wrapper.id);
-			this.tree.redraw(true);
+		this.activeLayer.expand();
 
-		});	
-		
+		this.events.trigger('objectAdded', objectNode.key);
+
 	}
 
 	addObjects(wrappers){
@@ -220,45 +129,37 @@ class LayerView {
 	}
 
 	removeObject(wrapper){
-		this.tree.delete_node({id: wrapper.id});
+		this.tree.removeNode(wrapper.id);
 	}
 
 	removeObjects(wrappers){
-		wrappers.forEach((wrapper) => {
-			this.tree.delete_node({id: wrapper.id});
+		wrappers.forEach( wrapper => {
+			this.tree.removeNode(wrapper.id);
 		});
 	}
 
-	removeSelected(){
-		if (this.numOfLayers() === 1){ return; }
+	setObjectName(wrapperId, name){
+		this.tree.getNode(wrapperId).name = name;
+	}
 
-		var toRemoveId = this.tree.get_selected()[0];
-		var node = this.tree.get_node({id: toRemoveId});
+	removeSelectedLayer(){
+		if (this.tree.children.size === 1){ return; }
 
-		if (node.data.type == 'layer'){
+		if (this.tree.selected instanceof LayerNode){
 
-			this.events.trigger('layerDeleted', toRemoveId);
+			this.events.trigger('layerDeleted', this.tree.selected.key);
+			this.tree.removeNode(this.tree.selected);
+			this.tree.select(this.tree.children.entries().next().value[1]);
 
-			this.tree.delete_node(node);
-
-			this.defaultActiveLayer();
-
-		} 
+		}
 	}
 
 	numOfLayers(){
-		var rootNode = this.tree.get_node({id: '#' });
-		return rootNode.children.length;
+		return this.tree.numOfChildren();
 	}
 
 	getLayerOrder(){
-		var rootNode = this.tree.get_node({id: '#' });
-		return _.clone(rootNode.children); //Clone the children, because jstree actively reads from the array
-	}
-
-	defaultActiveLayer(){
-		var rootNode = this.tree.get_node({id: '#' });
-		this.tree.select_node({ id: rootNode.children[0] });
+		return this.tree.getNodeOrder();
 	}
 
 }

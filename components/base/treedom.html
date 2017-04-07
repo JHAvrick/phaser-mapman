@@ -1,0 +1,970 @@
+<template id="tree-dom">
+  <style>
+
+    :host {
+      display: block;
+      width: auto;
+      height: auto;
+      border: 1px solid lightgray;
+    }
+
+    .draghover {
+      outline: 1px solid black;
+    }
+
+  </style>
+</template>
+<script>
+
+class TreeDom extends HTMLElement {
+  constructor() {
+    super();
+
+    const link = document.querySelector('#treedom-import');
+    const template = link.import.querySelector('#tree-dom');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+
+    this._children = new Map(); //Top layer of children
+    this._nodes = new Map();
+    this._key = 'root';
+    this._keyIndex = 0;
+    this._selected = undefined;
+    this._selections = new Map();
+    this._multiSelect = false;
+    this._defaultNodeType = TreeDomNode;
+    this._ghostNode = new GhostNode();
+    this._nodeEvents = [];
+
+    this._draggingNode; //reference to the node which is being dragged
+
+  }
+
+  //Subscribe to any node event
+  on(event, callback){
+    this._nodes.forEach(node => {
+      node.addEventListener(event, e => {
+        callback(e);
+      })
+    });
+
+    this._nodeEvents.push({name: event, callback: callback});
+  }
+
+  getNode(key){
+
+    //String
+    if (!(key instanceof TreeDomNode)){
+
+      if (key === this || key === 'root')
+        return this;
+
+      if (this._nodes.has(key))
+        return this._nodes.get(key);
+   
+    } else {
+
+      return key; //Just returns the node which was passed
+
+    }
+
+  }
+
+  getParent(nodeOrKey){
+    var node = this.getNode(nodeOrKey);
+    if (node) return this.getNode(node._parent);
+  }
+
+  getChildren(nodeOrKey){
+    var node = this.getNode(nodeOrKey);
+    if (node) return node._children;
+  }
+
+  clear(){
+    this._children.forEach(child => {
+      this._removeChildNode(child, false, true);
+    }); 
+  }
+
+  addNode(options){
+
+    var parentKey = options.parent instanceof TreeDomNode ? options.parent._key : options.parent || 'root',
+        nodeKey = options.key || 'node-' + this._keyIndex++,
+        meta = options.meta || {};
+
+    var node = options.type != undefined ? new options.type() : new this._defaultNodeType();
+        node._parent = parentKey;
+        node._key = nodeKey;
+        node._root = this;
+        node.options(options);
+
+    this._addNodeEvents(node);
+    this._nodes.set(nodeKey, node);
+    this.getNode(parentKey)._addChildNode(node);
+
+    return node;
+  }
+
+  removeNode(nodeOrId){
+    var node = this.getNode(nodeOrId);
+    var parent = this.getParent(node);
+
+    if (node){
+      parent._removeChildNode(node, false, true);
+    }
+  }
+
+  removeSelected(){
+    this.removeNode(this._selected);
+  }
+
+  getNodeOrder(parentNodeOrId){
+    if (!parentNodeOrId) 
+      var parent = this.shadowRoot;
+    else 
+      var parent = this.getNode(parentNodeOrId).shadowRoot;
+
+    var nodes = []; 
+    for (var i = 0; i < parent.childNodes.length; i++){
+
+      if (parent.childNodes[i] instanceof TreeDomNode){
+        nodes.push(parent.childNodes[i].key);
+      }
+
+    }
+
+    return nodes;
+  }
+
+  _removeChildNode(node, keepAsDOMChild, permaDelete){
+
+    if (this._children.has(node._key)){
+
+      if (permaDelete)
+        this._children.get(node._key)._removeSelf();
+
+      if (!keepAsDOMChild)
+        this.shadowRoot.removeChild(this._children.get(node._key));
+
+      this._children.delete(node._key);
+    }
+
+  }
+
+  _dragOverPosition(event, node){
+
+    let bounds = node._content.getBoundingClientRect();
+
+    if (event.pageY - (bounds.height / 6) < bounds.top)
+      return 'above';
+    else if (event.pageY > bounds.bottom - (bounds.height / 6))
+      return 'below';
+    else
+      return 'over';
+
+  }
+
+  _addNodeEvents(node){
+
+    //Triggerd by node in the disconnectedCallback
+    node.addEventListener('nodeRemoved', e => {
+      this._nodes.delete(e.data.key); //Removes the node from the root node map
+    });
+
+    node.addEventListener('nodeSelected', e => { 
+      this.select(node._key, true); 
+    });
+
+    node.addEventListener('dragstart', e => {
+      e.stopPropagation();
+
+      if (!node._movable){
+        e.preventDefault();
+        return false;
+      }  
+
+      //Remove the dragged node from its parent's child map,
+      //the node is still a child in the DOM
+      var oldParent = this.getParent(node);
+          oldParent._removeChildNode(node, true, false);
+
+      this._dragging = node;
+
+      //necessary to overcome HTML5 drag-and-drop shortcomings
+      //allows the element style to be changed without changing the drag handle
+      setTimeout(() => {
+
+          oldParent.shadowRoot.insertBefore(this._ghostNode, node);
+          this._ghostNode._parent = oldParent._key;
+
+          node.style.display = 'none';
+          this._ghostNode.style.display = '';
+
+      }, 1);
+
+      node.dispatchEvent(node._getEvent('nodeDragStart', node));
+
+    });
+
+    node.addEventListener('dragover', (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+
+        var parent = this.getParent(node);
+
+        switch (this._dragOverPosition(e, node)) {
+            case 'above':
+                  if (this._dragging.isLegalParent(parent))
+                      this._ghostNode.before(node);
+                break;
+            case 'below':
+                  if (this._dragging.isLegalParent(parent))
+                      this._ghostNode.after(node);
+                break;
+            case 'over':
+                  if (this._dragging.isLegalParent(node)){
+                    this._ghostNode.into(node, node.isCollapsed);
+                    node.className = "draghover";
+                  }   
+                break;
+        }
+        
+    });
+
+    node.addEventListener('dragend', (e) => {
+
+      if (this._ghostNode.parentNode){
+        var newParent = this.getNode(this._ghostNode._parent);
+            newParent._children.set(node._key, node);
+
+        node._parent = newParent._key;
+        this._ghostNode.swap(node, newParent.isCollapsed);
+
+        node.dispatchEvent(node._getEvent('nodeMoved', {node: node, parent: newParent}));
+      }
+
+    });
+
+    node.addEventListener('dragleave', e => { node.className = ''; });
+    node.addEventListener('drop', e => { node.className = ''; });
+
+    //add any other events
+    this._nodeEvents.forEach( event => {
+      node.addEventListener(event.name, event.callback);
+    });
+
+  }
+
+  set defaultNodeType(nodeType){
+    if (nodeType instanceof TreeDomNode){
+      this._defaultNodeType = nodeType;
+    }
+  }
+
+  get children(){
+    return this._children;
+  }
+
+  get defaultNodeType(){
+    return this._defaultNodeType;
+  }
+
+  set multiSelect(bool){
+    this._multiSelect = bool;
+  }
+
+  //returns the actual node which is selected
+  get selected(){
+    if (!this._multiSelect)
+      return this._selected;
+    else
+      return this._selections;
+  }
+
+  select(nodeKey, suppressEvent){
+    var node = this.getNode(nodeKey);
+
+    if (!node) return;
+
+    if (!this._multiSelect){
+
+      if (this._selected)
+        this._selected._content.className = 'unselected';
+
+      this._selected = node;
+      this._selected._content.className = 'selected';
+
+      if (!suppressEvent)
+        node.dispatchEvent(node._getEvent('nodeSelected', {node: this._selected} ));
+
+    } else {
+
+      this._selections.set(nodeKey, node);
+      node._content.className = 'selected';
+
+      if (!suppressEvent)
+        node.dispatchEvent(node._getEvent('nodeSelected', { node: this._selections } ));
+    }
+
+  }
+
+  unselect(nodeKey, suppressEvent){
+    var node = this.getNode(nodeKey);
+
+    if (!node) return;
+
+    if (!this._multiSelect){
+
+      if (!suppressEvent)
+        node.dispatchEvent(node._getEvent('nodeUnselected', { node: node } ));
+
+      if (this._selected){
+        this._selected._content.className = 'unselected';
+        this._selected = undefined;
+      }
+
+    } else {
+
+      if (this._selections.has(nodeKey)){
+
+        this._selections.delete(nodeKey);
+        node._content.className = 'unselected';
+
+      }
+
+    }
+
+  }
+
+  unselectAll(){
+    this._selected._content.className = 'unselected';
+    this._selections.forEach(node => {
+      node._content.className = 'unselected';
+    });
+
+    this._selected = undefined;
+    this._selections = [];
+  }
+
+  moveUp(node){
+    var node = this.getNode(node);
+    if (node) node.parentNode.insertBefore(node, node.previousSibling);
+  }
+
+  moveDown(nodeKey){
+    var node = this.getNode(node);
+    
+    if (node){
+      if (node.parentNode.lastChild === node)
+        node.parentNode.appendChild(node);
+      else
+        node.parentNode.insertBefore(node, node.nextSibling.nextSibling);
+    }
+  }
+
+  numOfChildren(node){
+    if (!node) 
+      var node = this;
+    else
+      var node = this.getNode(node);
+
+    return node._children.size;
+  }
+
+  _addChildNode(node){
+    if (this._children.has(node._key))
+      this.shadowRoot.removeChild(this._children.get(node._key));
+    
+    this._children.set(node._key, node);
+    this.shadowRoot.appendChild(node);
+  }
+
+  _getEvent(name, data){
+    var e = new CustomEvent(name, {
+      bubbles: false,
+    });
+        e.data = data;
+    return e;
+  }
+
+}
+
+customElements.define('tree-dom', TreeDom);
+
+</script>
+
+
+<!-- ///////////////////////////////////////////////////////////////////////////////////// -->
+<!-- ////////////////////////////////////  BASIC NODE  /////////////////////////////////// -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////// -->
+<template id="treedom-node">
+  <style>
+
+  :host {
+    display: block;
+    width: 100%;
+    min-height: var(--node-height, 20px);
+    height: auto;
+    margin: 0px;
+  }
+
+  treedom-node {
+    margin-left: var(--indent, 15px);
+  }
+
+  .selected {
+    background-color: var(--bgcolor-selected, lightblue);
+  }
+
+  .unselected {
+    background-color: var(--bgcolor-unselected, transparent);
+  }
+
+  .unselected:hover {
+    background-color: var(--bgcolor-hover, #caffc5);
+  }
+
+  #content {
+    width: 100%;
+    display: var(--content-display, table);
+    min-height: var(--node-height, 20px);
+    height: auto;
+  
+    @apply --content-style;
+  }
+
+  label { @apply --label-style; }
+  input { @apply --input-style; }
+  button { @apply --btn-style; }
+
+  </style>
+  <div id="content"></div>
+</template>
+<script>
+
+class TreeDomNode extends HTMLElement {
+  constructor() {
+    super();
+   
+    const link = document.querySelector('#treedom-import');
+    const template = link.import.querySelector('#treedom-node');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+    
+    //These three properties MUST be set externally by the tree root
+    this._key;
+    this._parent;
+    this._root;
+
+    this._children = new Map(); //direct descendants of this node
+    this._content = shadowRoot.getElementById('content'); //the div container which should hold the node's content (i.e. inputs, labels, etc.)
+    this._content.className = 'unselected'
+
+    //Readonly state flags
+    this._collapsed = true; 
+    this._dragging = false; //flags whether this node is currently being dragged
+    this._selected = false; //whether this node is currently selected
+    this._isRemoved = false;
+
+    //Options
+    this.draggable = true; //Every node should always be HTML5 drag-enabled, to make a node immovable use the 'movable' flag
+    this._movable = true; //Determines whether the node can be moved, should be used instaed of directly setting the draggable attribute
+    this._disabled = true; //A disabled node can still be moved, but its contents cannot be reached
+    this._expandOnDblClick = true;
+    this._selectOnClick = true;
+    
+    //A list of legal parent nodes, an empty list will result in only the root as a valid parent
+    this._legalParentNodes = ['TreeDomNode']; 
+
+    //Default events
+    this._content.addEventListener('click', e => {
+
+      if (this._selectOnClick)
+        this.dispatchEvent(this._getEvent('nodeSelected', { node: this } ));
+
+    });
+
+    this._content.addEventListener('dblclick', e => {
+      if (this._expandOnDblClick){
+
+        this.dispatchEvent(this._getEvent('collapseStateToggled', { node: this } ));
+
+        this.toggleCollapsed();
+      } 
+    });
+
+  }
+
+  connectedCallback(){
+
+  }
+
+  disconnectedCallback(){
+    if (this._isRemoved)
+      this.dispatchEvent(this._getEvent('nodeRemoved', {key: this._key}));
+  }
+
+  options(options){
+    if (!options) return;
+
+    this.movable = options.movable || this._movable;
+    this.disabled = options.disabled || this._disabled;
+    this.selected = options.selected || this._selected;
+    this.expandOnDblClick = options.expandOnDblClick || this._expandOnDblClick;
+    this.selectOnClick = options.selectOnClick || this._selectOnClick;
+
+  }
+
+  expand(){
+    if (this._children.length === 0) return false;
+
+    this._children.forEach(child => {
+      child.style.display = 'block';
+    });
+    this._collapsed = false;
+  }
+
+  collapse(){
+    this._children.forEach(child => {
+      child.style.display = 'none';
+    });
+    this._collapsed = true;
+  }
+
+  toggleCollapsed(){
+    if (this.isCollapsed)
+      this.expand();
+    else 
+      this.collapse();
+  }
+
+  get isCollapsed(){
+    return this._collapsed;
+  }
+
+  //Used internally to 
+  _addChildNode(node){
+    if (this._children.has(node._key))
+      this.shadowRoot.removeChild(this._children.get(node._key));
+    
+    if (this.isCollapsed)
+      node.style.display = 'none';
+
+    this._children.set(node._key, node);
+    this.shadowRoot.appendChild(node);
+  }
+
+  _removeChildNode(node, keepAsDOMChild, permaDelete){
+    if (this._children.has(node._key)){
+
+      if (permaDelete)
+        this._children.get(node._key)._removeSelf(); 
+
+      if (!keepAsDOMChild)
+        this.shadowRoot.removeChild(this._children.get(node._key));
+
+      this._children.delete(node._key);
+    }
+
+    if (this._children.size === 0){
+      this._collapsed = true;
+    }
+  }
+
+  //Set _isRemoved flag as true on self and all children 
+  //when the disconnectedCallback is called, this flag indicates whether the node 
+  //is permanently removed or just being moved
+  _removeSelf(){
+    this._isRemoved = true;
+    this._children.forEach(child => {
+      child._removeSelf();
+    });
+  }
+
+  _getEvent(name, data){
+    var e = new CustomEvent(name, {
+      bubbles: false,
+    });
+        e.data = data;
+    return e;
+  }
+
+  isLegalParent(node){
+    return this._legalParentNodes.includes(node.constructor.name);
+  }
+
+  isLegalChild(node){
+    return this._legalChildNodes.includes(node.constructor.name);
+  }
+
+  numOfChildren(node){
+    if (!node) 
+      var node = this;
+    else
+      var node = this.getNode(node);
+
+    return node._children.size;
+  }
+
+  get key(){ return this._key; }
+  get parent(){ return this._parent; }
+
+  set expandOnDblClick(bool){ this._expandOnDblClick = bool; }
+  get expandOnDblClick() { return this._expandOnDblClick; }
+
+  set selectOnClick(bool){ this._selectOnClick = bool; }
+  get selectOnClick(){ return this._selectOnClick; }
+
+  set movable(bool){ this._movable = bool; }
+  get movable(){ return this._movable; }
+
+  set disabled(bool){ this._disabled = bool; }
+  get disabled(){ return this._disabled; }
+
+  set disabled(bool){ this._disabled = bool; }
+  get disabled(){ return this._disabled; }
+
+  set legalParentNodes(nodes){
+
+    var legalNodes = [];
+    nodes.forEach(node => {
+
+      if (typeof node === 'function')
+        legalNodes.push(node.constructor.name);
+      else if (typeof node === 'string')
+        legalNodes.push(node);
+
+    });
+
+    this._legalParentNodes = legalNodes;
+  }
+
+  get legalParentNodes(){ return this._legalParentNodes }
+
+}
+
+customElements.define('treedom-node', TreeDomNode);
+
+</script>
+
+<!-- ///////////////////////////////////////////////////////////////////////////////////// -->
+<!-- ////////////////////////////////////  GHOST NODE  /////////////////////////////////// -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////// -->
+
+<template id="ghost-node">
+  <style>
+  :host {
+    pointer-events: none;
+  }
+  </style>
+</template>
+<script>
+
+class GhostNode extends TreeDomNode {
+  constructor() {
+    super();
+   
+    const link = document.querySelector('#treedom-import');
+    const template = link.import.querySelector('#ghost-node');
+    const instance = template.content.cloneNode(true);
+    this.shadowRoot.appendChild(instance);
+
+    this.draggable = false;
+    this._movable = false;
+
+    this._returnParent;
+    this._returnSibling;
+
+  }
+
+  before(node){
+    var parentEl = node.parentNode;
+        parentEl.insertBefore(this, node);
+
+        parentEl.parentNode;
+
+        this.style.display = '';
+        this._parent = node._parent;
+  }
+
+  after(node){
+
+    var parentEl = node.parentNode;
+        parentEl.insertBefore(this, node.nextSibling);
+
+        this.style.display = '';
+        this._parent = node._parent;
+  }
+
+  into(node, isCollapsed){
+    node.shadowRoot.appendChild(this);
+    this._parent = node._key;
+
+    if (isCollapsed)
+      this.style.display = 'none';
+  }
+
+  placehold(node){
+    this._returnParent = node.parentNode;
+    this._returnSibling = node.nextSibling;
+    this.after(node);
+  }
+
+  swap(node, isCollapsed){
+    this.parentNode.insertBefore(node, this.nextSibling);
+    this.parentNode.removeChild(this);
+
+    if (!isCollapsed)
+      node.style.display = '';
+  }
+
+}
+
+customElements.define('ghost-node', GhostNode);
+</script>
+
+<!-- ///////////////////////////////////////////////////////////////////////////////////// -->
+<!-- ///////////////////////////////////  LAYER NODE  //////////////////////////////////// -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////// -->
+
+<template id="layer-node">
+  <style>
+
+  object-node {
+    margin-left: 15px;
+  }
+
+  layer-node {
+    margin-left: 15px;
+  }
+
+  toggle-button {
+    float: right;
+    width: 15px;
+    height: 15px;
+    margin-right: 5px;
+    margin-top: 4px;
+  }
+
+  span {
+    background-image: url('resources/icon/icon-layer.png');
+    background-repeat: no-repeat;
+    padding-left: 20px;
+    padding-bottom: 15px;
+    padding-top: 3px;
+    display: inline;
+    margin-left: 5px;
+    margin-top: 4px; 
+    float: left;
+  }
+
+  input {
+    border: 0;
+    outline: none;
+    background-color: transparent;
+    margin-top: 3px;
+    margin-left: 5px;
+    width: 80%
+  }
+
+  </style>
+</template>
+<script>
+
+class LayerNode extends TreeDomNode {
+  constructor() {
+    super();
+   
+    const link = document.querySelector('#treedom-import');
+    const template = link.import.querySelector('#layer-node');
+    const instance = template.content.cloneNode(true);
+    this.shadowRoot.appendChild(instance);
+
+    this.icon = document.createElement('span');
+    this.layerName = document.createElement('input');
+    this.layerName.readOnly = true;
+    this.layerName.value = "New Layer";
+
+    this.icon.addEventListener('click', e => {
+      this.toggleCollapsed();
+    });
+
+    this.layerName.addEventListener('dblclick', e => {
+      e.stopPropagation();
+
+      this.layerName.setSelectionRange(0, this.layerName.value.length)
+      this.layerName.readOnly = false;
+
+    });
+
+    this.layerName.addEventListener('blur', e => {
+      e.stopPropagation();
+
+      this.layerName.readOnly = true;
+
+      var e = new CustomEvent('layerNameEdited', {
+        bubbles: false,
+      });
+
+      e.data = {node: this, value: this.layerName.value};
+
+      this.dispatchEvent(e);
+
+    });
+
+    this.hiddenToggle = new ToggleButton('resources/icon/icon-eye.png');
+    this.hiddenToggle.addEventListener('click', e => {
+      
+      var e = new CustomEvent('layerToggled', {
+        bubbles: false,
+      });
+
+      e.data = {node: this, state: this.hiddenToggle.value};
+
+      this.dispatchEvent(e);
+
+    });
+
+    this.legalParentNodes = ['TreeDom'];
+
+    this._content.appendChild(this.icon);
+    this._content.appendChild(this.layerName);
+    this._content.appendChild(this.hiddenToggle);
+  }
+
+  set name(value){
+    this.layerName.value = value;
+  }
+
+  get name(){
+    return this.layerName.value;
+  }
+
+}
+
+customElements.define('layer-node', LayerNode);
+
+</script>
+
+
+<!-- ///////////////////////////////////////////////////////////////////////////////////// -->
+<!-- ///////////////////////////////////  OBJECT NODE  /////////////////////////////////// -->
+<!-- ///////////////////////////////////////////////////////////////////////////////////// -->
+
+<template id="object-node">
+  <style>
+
+  span {
+    background-image: url('resources/icon/icon-object.png');
+    background-repeat: no-repeat;
+    padding-left: 20px;
+    padding-bottom: 15px;
+    padding-top: 3px;
+    display: inline;
+    margin-left: 5px;
+    margin-top: 4px; 
+    float: left;
+  }
+
+  input {
+    border: 0;
+    outline: none;
+    background-color: transparent;
+    margin-top: 3px;
+    margin-left: 5px;
+    width: 80%
+  }
+
+  </style>
+</template>
+<script>
+
+class ObjectNode extends TreeDomNode {
+  constructor() {
+    super();
+   
+    const link = document.querySelector('#treedom-import');
+    const template = link.import.querySelector('#object-node');
+    const instance = template.content.cloneNode(true);
+    this.shadowRoot.appendChild(instance);
+
+    this.icon = document.createElement('span');
+    this.objectName = document.createElement('input');
+    this.objectName.readOnly = true;
+    this.objectName.value = "Object";
+
+    this._content.appendChild(this.icon);
+    this._content.appendChild(this.objectName);
+
+    this.legalParentNodes = ['LayerNode'];
+
+    this._movable = false;
+  }
+
+  set name(value){
+    this.objectName.value = value;
+  }
+
+  get name(){
+    return this.objectName.value;
+  }
+
+}
+
+customElements.define('object-node', ObjectNode);
+
+</script>
+
+
+
+
+
+<template id="layer-view">
+  <style>
+
+  :host {
+    display: flex;
+    width: 300px;
+    height: 300px;
+  }
+
+  </style>
+    <tree-dom id="tree">
+      
+    </tree-dom>
+</template>
+
+<script>
+//Custom list item element
+class LayerView extends HTMLElement {
+  constructor() {
+    super(); // always call super() first in the ctor.
+   
+    const link = document.querySelector('#treedom-import');
+    const template = link.import.querySelector('#layer-view');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+
+    this.tree = shadowRoot.getElementById('tree');
+
+    console.log(this.tree);
+
+    var node = this.tree.addNode({type: LayerNode });
+    this.tree.addNode({ parent: node, type: ObjectNode });
+    this.tree.addNode({ parent: node, type: ObjectNode });
+    this.tree.addNode({ parent: node, type: ObjectNode });
+
+  }
+
+  connectedCallback(){
+    console.log(this);
+  }
+
+}
+
+customElements.define('layer-view', LayerView);
+
+</script>

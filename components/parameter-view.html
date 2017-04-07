@@ -1,0 +1,110 @@
+<link rel="import" href="base/sortable-list.html" id="sortable-import">
+<link rel="import" href="base/editor-input.html" id="editor-input-import">
+
+<template id="parameter-view">
+  <style>
+    :host  {
+      display: flex;
+      width: 100%;
+      height: 100%;
+      padding: 0 5px 5px 0;
+    }
+
+    sortable-list {
+      height: calc(100% - 25px);
+      width: 100%;
+      padding-left: 5px;
+
+      --editor-input-width: calc(100% - 15px);
+      --toggle-width: 12px;
+      --toggle-height: 12px;
+      --toggle-margin: 3px 0 0 0;
+    }
+
+  </style>
+</template>
+  
+<script>
+
+//Custom list item element
+class ParameterView extends HTMLElement {
+  constructor() {
+    super(); // always call super() first in the ctor.
+   
+    const link = document.querySelector('#parameter-view-import');
+    const template = link.import.querySelector('#parameter-view');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+
+    this.events = new EventManager();
+    this.list = new SortableList();
+    this.items = new Map();
+
+    shadowRoot.appendChild(this.list);
+
+    console.log(shadowRoot);
+    
+  }
+
+  clear(){
+    this.list.clear(); //clear sortable list
+    this.items.clear(); //clear item map
+  }
+
+  add(name, value, meta){
+
+    var input = new EditorInput(name, value);
+    var toggle = new ToggleButton('resources/icon/icon-link.png');
+    var item = this.list.addItem(name, {
+      children: [input, toggle]
+    });
+
+    switch (meta.type) {
+      case 'manual':
+          input.disabled = false;
+          toggle.off();
+        break;
+      case 'link':
+          input.disabled = true;
+          toggle.on();
+        break;
+      case 'special':
+          input.disabled = true;
+          this.list.disableItem(name);
+          toggle.on();
+        break;
+    }
+
+    input.addEventListener('edited', e => {
+      this.events.trigger('parameterEdited', name, input.value);
+    });
+
+    toggle.addEventListener('click', (event) => {
+      
+      toggle.toggle();
+
+      this.events.trigger('parameterLinkToggled', name);
+    });
+
+    //Only the input is actually referenced later, but each param componenet is included for possible future needs
+    this.items.set(name, { item: item, toggle: toggle, input: input }); 
+  }
+
+  addAll(allMeta){
+    for (var name in allMeta){
+      this.add(name, allMeta[name].value, allMeta[name].meta);
+    }
+  }
+
+  setAll(allMeta){
+    for (var name in allMeta){
+      this.items.get(name).input.value = allMeta[name].value;
+    }
+  }
+
+}
+
+customElements.define('parameter-view', ParameterView);
+
+</script>

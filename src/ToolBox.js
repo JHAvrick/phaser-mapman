@@ -175,16 +175,22 @@ class Selector {
 	start(pointer){
 		if (this.stage.input.mousePointer.leftButton.isDown){
 
-			if (pointer.targetObject){
+			//Check 
+			if (pointer.targetObject && pointer.targetObject.sprite.wrapper){
 
-				if (pointer.targetObject.sprite.wrapper){
-
-					if (this.selection || this.groupSelection.length > 0){
-						this.unselect();
-					}
-
-					this.select(pointer.targetObject.sprite.wrapper);
+				//If the object clicked is already selected, return so that the 'selectionChanged' event does not fire
+				if (pointer.targetObject.sprite.wrapper === this.selection){
+					this.triggerEditOnRelease = true;
+					return;
 				}
+				
+				//Unselect any existing selections
+				if (this.selection || this.groupSelection.length > 0){
+					this.unselect();
+				}
+
+				this.select(pointer.targetObject.sprite.wrapper);
+				
 
 			} else {
 
@@ -199,7 +205,7 @@ class Selector {
 	}
 
 	select(wrapper){
-		if (MapMan.Stages.inActiveLayer(wrapper)){
+		if (MapMan.Scenes.Active.inActiveLayer(wrapper)){
 			this.selection = wrapper;
 			this.triggerEditOnRelease = true;
 			this.selection.select();
@@ -279,7 +285,7 @@ class Selector {
 		//-----------------------------------------------------------------------------//
 
 		var boundBox = new Phaser.Rectangle(x, y, width, height);
-		var selectables = MapMan.Stages.active.getActiveLayerObjects();
+		var selectables = MapMan.Scenes.Active.getActiveLayerObjects();
 
 		selectables.forEach((wrapper) => {
 			if (!wrapper.deleted){
@@ -756,12 +762,14 @@ class Zoom {
 			//Zoom out
 			if (event.deltaY > 0){
 
-				this.scaleFactor -= .05;
+				if (this.scaleFactor >= .35)
+					this.scaleFactor -= .05;
 
 			//Zoom in
 			} else {
 
-				this.scaleFactor += .05;
+				if (this.scaleFactor <= 2.00)
+					this.scaleFactor += .05;
 
 			}
 
@@ -887,7 +895,7 @@ class Grid {
 			this.stage.world.bringToTop(wrapper.bounds);
 
 		}.bind(this));
-		MapMan.Stages.restack();	
+		MapMan.Scenes.Active.restack();	
 	}
 
 	getGridTexture(){

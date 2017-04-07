@@ -1,0 +1,95 @@
+<template id="toggle-button">
+  <style>
+
+    :host {
+      display: flex;
+      border: 1px solid black;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center center;
+
+      width: var(--toggle-width, auto);
+      height: var(--toggle-height, auto);
+      float: var(--toggle-float, right);
+      margin: var(--toggle-margin, 0 0 0 0);
+    }
+
+  </style>
+</template>
+
+<script>
+
+/**
+ * A simple toggle switch using images rather than checkbox
+ * @param {String} imageOnPath - image to show when the ToggleButton is on / true
+ * @param {String} imageOffPath - image to show when the ToggleButton is off / false
+ * @param {Boolean} value
+ */
+class ToggleButton extends HTMLElement {
+  constructor(imageOnPath, imageOffPath, value) {
+    super();
+
+    //Build template
+    const link = document.querySelector('#toggle-button-import');
+    const template = link.import.querySelector('#toggle-button');
+    const instance = template.content.cloneNode(true);
+    let shadowRoot = this.attachShadow({mode: 'open'});
+        shadowRoot.appendChild(instance);
+
+    this._imageOn = 'url(' + imageOnPath + ')';
+    this._imageOff = imageOffPath != undefined ? 'url(' + imageOnPath + ')' : 'url()';
+    this._value = value != undefined ? value : true;
+    this._disabled = false;
+  
+    if (this._value)
+        this.style.backgroundImage = this._imageOn;
+
+    this.addEventListener('click', e => {
+      if (!this._disabled){
+        this.toggle();
+      }
+    });
+    
+  
+  }
+
+  connectedCallback(){
+
+  }
+
+  toggle(){
+    if (this._value){
+      this.off();
+    } else {
+      this.on();
+    }
+  }
+
+  on(){
+    this._value = true;
+    this.style.backgroundImage = this._imageOn;
+  }
+
+  off(){
+    this._value = false;
+    this.style.backgroundImage = this._imageOff;
+  }
+
+
+  set disabled(bool){
+    this._disabled = bool;
+  }
+
+  get disabled(){
+    return this._disabled;
+  }
+
+  get value(){
+    return this._value;
+  }
+
+}
+
+customElements.define('toggle-button', ToggleButton);
+
+</script>

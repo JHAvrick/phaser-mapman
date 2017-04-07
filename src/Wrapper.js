@@ -289,7 +289,7 @@ class Wrapper {
 			var oldY = this.lastY;
 
 			var self = this;
-			MapMan.Stages.action({
+			MapMan.Scenes.Active.action({
 				type: 'Moved Object',
 				undo: () => {   
 					this.display.x = oldX;

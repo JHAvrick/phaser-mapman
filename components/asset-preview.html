@@ -24,28 +24,19 @@ class AssetPreview extends HTMLElement {
       let shadowRoot = this.attachShadow({mode: 'open'});
           shadowRoot.appendChild(instance);
 
-      this.addEventListener('dragover', e => {
-        e.preventDefault();
-
-        console.log("Hey...");
-
-      });
+      this.events = new EventManager();
 
       this.addEventListener('drop', e => {
         e.preventDefault();
 
-        console.log("Hey...");
+        this.events.trigger('nodeDropped', e.dataTransfer.getData('text'));
 
       });
 
     }
 
-    set state(state){
-
-    }
-
-    get state(){
-
+    set image(path){
+      this.style.backgroundImage = 'url(' + path + ')';
     }
 
 }

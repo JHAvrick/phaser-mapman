@@ -332,8 +332,12 @@ class AssetView {
 
 			} else {
 
-				//This monstrosity removes spaces and appends data/time to the image url to prevent caching
-				var imagePath = node.data.path.replace(/ /g, '%20') + ('?' + new Date().getTime()); 
+				//This unfortunate bit of code removes spaces and appends data/time to the image url to prevent caching
+				var imagePath = node.data.path.replace(/ /g, '%20') + ('?' + new Date().getTime());
+
+				if (node.data.ext === '.json'){
+					var imagePath = 'resources/icon/icon-text-large.png';
+				}
 
 				div.style.backgroundImage = 'url(' + imagePath + ')';
 				div.appendChild(this.getLabel(node.data.name, 'asset-label'));
@@ -403,6 +407,10 @@ class AssetView {
 
 	getId(){
 		return 'nodeID-' + this.nodeId++;
+	}
+
+	getNode(id){
+		return this.tree.get_node({ id: id });
 	}
 
 	hideDragHint(){
